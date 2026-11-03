@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #090d16;
+  color: #f8fafc;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes isoPulse {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0.9;
+  }
+}
+
+@keyframes breathDot {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.45);
+    opacity: 1;
+  }
+}
+
+@keyframes pressVertical {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(16px);
+  }
+}
+
+@keyframes pullVertical {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(22px);
+  }
+}
+
+@keyframes squatMotion {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(14px);
+  }
+}
+
+@keyframes hingeMotion {
+  0%, 100% {
+    transform: rotate(0deg);
+    transform-origin: 108px 102px;
+  }
+  50% {
+    transform: rotate(12deg);
+    transform-origin: 108px 102px;
+  }
+}
+
+@keyframes pushupMotion {
+  0%, 100% {
+    transform: rotate(0deg);
+    transform-origin: 68px 142px;
+  }
+  50% {
+    transform: rotate(9deg);
+    transform-origin: 68px 142px;
+  }
+}
+
+@keyframes subtleHover {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+    transform-origin: center;
+  }
+  to {
+    transform: rotate(360deg);
+    transform-origin: center;
+  }
+}
+
+.animate-iso-pulse {
+  animation: isoPulse 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-breath-dot {
+  animation: breathDot 8s ease-in-out infinite;
+}
+
+.animate-press-vertical {
+  animation: pressVertical 2.6s ease-in-out infinite;
+}
+
+.animate-pull-vertical {
+  animation: pullVertical 2.8s ease-in-out infinite;
+}
+
+.animate-squat-motion {
+  animation: squatMotion 2.8s ease-in-out infinite;
+}
+
+.animate-hinge-motion {
+  animation: hingeMotion 3s ease-in-out infinite;
+}
+
+.animate-pushup-motion {
+  animation: pushupMotion 2.5s ease-in-out infinite;
+}
+
+.animate-subtle-hover {
+  animation: subtleHover 3s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 9s linear infinite;
+}
