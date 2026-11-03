@@ -30,26 +30,61 @@ export function getSupabaseClient(): SupabaseClient | null {
   return supabaseInstance;
 }
 
-export async function signInWithGoogle() {
+export async function signInWithEmail(email: string, password: string) {
   const client = getSupabaseClient();
   if (!client) {
-    throw new Error(
-      'Supabase ist noch nicht in .env.local konfiguriert. Bitte trage NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ein.'
-    );
+    throw new Error('Supabase Cloud ist nicht konfiguriert.');
   }
-  const redirectTo =
-    typeof window !== 'undefined' ? `${window.location.origin}/` : undefined;
+  const { data, error } = await client.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
+  if (error) {
+    throw error;
+  }
+  return data;
+}
 
-  return client.auth.signInWithOAuth({
-    provider: 'google',
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  displayName?: string
+) {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error('Supabase Cloud ist nicht konfiguriert.');
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName =
+    displayName?.trim() || cleanEmail.split('@')[0] || 'FitPulse Athlet';
+
+  const { data, error } = await client.auth.signUp({
+    email: cleanEmail,
+    password,
     options: {
-      redirectTo,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
+      data: {
+        display_name: cleanName,
+        full_name: cleanName,
       },
     },
   });
+
+  if (error) {
+    throw error;
+  }
+
+  // Falls trotz Auto-Confirm-Trigger noch keine Session zurückkam, direkt einloggen
+  if (data.user && !data.session) {
+    const signInRes = await client.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+    if (!signInRes.error) {
+      return signInRes.data;
+    }
+  }
+
+  return data;
 }
 
 export async function signOutUser() {

@@ -51,7 +51,8 @@ import { InteractiveLineChart, type ChartDataPoint } from '@/components/Interact
 import {
   getSupabaseClient,
   isSupabaseConfigured,
-  signInWithGoogle,
+  signInWithEmail,
+  signUpWithEmail,
   signOutUser,
   type User,
 } from '@/lib/supabase';
@@ -205,11 +206,19 @@ export default function FitPulseApp() {
     useState<AnimationPose>('shoulder_press');
   const [newExAddToSelectedDay, setNewExAddToSelectedDay] = useState(true);
 
-  // Auth & Cloud Sync State
+  // Auth & Cloud Sync State (Einstiegsseite + Multi-User Support für dich & deine Freundin)
   const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [guestMode, setGuestMode] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authDisplayName, setAuthDisplayName] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showCloudModal, setShowCloudModal] = useState(false);
-  const [, setSyncStatus] = useState<'local' | 'syncing' | 'synced'>('local');
+  const [syncStatus, setSyncStatus] = useState<'local' | 'syncing' | 'synced'>('local');
+  const [cloudDataLoadedForUser, setCloudDataLoadedForUser] = useState<string | null>(null);
 
   // Sunday Weight Reminder State
   const [sundayReminderEnabled, setSundayReminderEnabled] = useState(true);
@@ -278,30 +287,45 @@ export default function FitPulseApp() {
   >('distance');
   const [chartWeightMetric, setChartWeightMetric] = useState<'weight' | 'bp'>('weight');
 
-  // Load initial data from localStorage or Seed Data
-  useEffect(() => {
+  // Track manual check-offs for daily plan items in addition to logged workouts on inputDate
+  const [manualCheckedMap, setManualCheckedMap] = useState<Record<string, boolean>>({});
+
+  // Scoped storage key helper so multiple accounts (e.g. you & your girlfriend) never mix local cache
+  const getScopedKey = useCallback(
+    (baseKey: string, uid?: string | null) => {
+      const scope = uid || user?.id || 'guest';
+      return `${baseKey}_${scope}`;
+    },
+    [user?.id]
+  );
+
+  // Load local data for a specific scope (guest or user.id)
+  const loadLocalScopeData = useCallback((uid?: string | null) => {
     try {
       const seed = getInitialSeedData();
-      const savedPlan = localStorage.getItem(STORAGE_KEYS.plan);
-      const savedCustomEx = localStorage.getItem(STORAGE_KEYS.customExercises);
-      const savedStrength = localStorage.getItem(STORAGE_KEYS.strengthLogs);
-      const savedCardio = localStorage.getItem(STORAGE_KEYS.cardioLogs);
-      const savedWeight = localStorage.getItem(STORAGE_KEYS.weightLogs);
+      const scope = uid || 'guest';
+      const savedPlan = localStorage.getItem(`${STORAGE_KEYS.plan}_${scope}`);
+      const savedCustomEx = localStorage.getItem(`${STORAGE_KEYS.customExercises}_${scope}`);
+      const savedStrength = localStorage.getItem(`${STORAGE_KEYS.strengthLogs}_${scope}`);
+      const savedCardio = localStorage.getItem(`${STORAGE_KEYS.cardioLogs}_${scope}`);
+      const savedWeight = localStorage.getItem(`${STORAGE_KEYS.weightLogs}_${scope}`);
+      const savedChecked = localStorage.getItem(`fitpulse_checked_map_v1_${scope}`);
       const savedReminder = localStorage.getItem(STORAGE_KEYS.reminderEnabled);
 
-      if (savedCustomEx) {
-        const parsedCustom = JSON.parse(savedCustomEx);
-        if (Array.isArray(parsedCustom)) {
-          setCustomExercises(parsedCustom);
-        }
-      }
+      setCustomExercises(savedCustomEx ? JSON.parse(savedCustomEx) : []);
+      setManualCheckedMap(savedChecked ? JSON.parse(savedChecked) : {});
 
       if (savedPlan) {
         const parsed = JSON.parse(savedPlan);
         if (parsed && Array.isArray(parsed.days) && parsed.days.length === 7) {
           setPlan(parsed);
+        } else {
+          setPlan(generatePlanForGoalAndLevel('blutdruck', 'fortgeschritten'));
         }
+      } else {
+        setPlan(generatePlanForGoalAndLevel('blutdruck', 'fortgeschritten'));
       }
+
       setStrengthLogs(savedStrength ? JSON.parse(savedStrength) : seed.strengthLogs);
       setCardioLogs(savedCardio ? JSON.parse(savedCardio) : seed.cardioLogs);
       setWeightLogs(savedWeight ? JSON.parse(savedWeight) : seed.weightLogs);
@@ -316,53 +340,220 @@ export default function FitPulseApp() {
     }
   }, []);
 
-  // Save to localStorage whenever state updates
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEYS.plan, JSON.stringify(plan));
-  }, [plan, hydrated]);
+  // Load user's personal data from Supabase Cloud (isolated via RLS auth.uid() = user_id)
+  const loadUserCloudData = useCallback(
+    async (activeUser: User) => {
+      // First load any cached local state for this user ID for instant UI response
+      loadLocalScopeData(activeUser.id);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEYS.customExercises, JSON.stringify(customExercises));
-  }, [customExercises, hydrated]);
+      const client = getSupabaseClient();
+      if (!client) return;
 
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEYS.strengthLogs, JSON.stringify(strengthLogs));
-  }, [strengthLogs, hydrated]);
+      setSyncStatus('syncing');
+      try {
+        const [planRes, strengthRes, cardioRes, weightRes] = await Promise.all([
+          client
+            .from('training_plans')
+            .select('*')
+            .eq('user_id', activeUser.id)
+            .maybeSingle(),
+          client
+            .from('strength_logs')
+            .select('*')
+            .eq('user_id', activeUser.id)
+            .order('performed_at', { ascending: false }),
+          client
+            .from('cardio_logs')
+            .select('*')
+            .eq('user_id', activeUser.id)
+            .order('performed_at', { ascending: false }),
+          client
+            .from('weight_logs')
+            .select('*')
+            .eq('user_id', activeUser.id)
+            .order('measured_at', { ascending: false }),
+        ]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEYS.cardioLogs, JSON.stringify(cardioLogs));
-  }, [cardioLogs, hydrated]);
+        if (planRes.data) {
+          const row = planRes.data;
+          if (Array.isArray(row.exercises) && row.exercises.length === 7) {
+            setPlan({
+              id: row.id,
+              name: row.name || '7-Tage Wochenplan',
+              goal: (row.goal as TrainingGoal) || 'blutdruck',
+              level: (row.level as FitnessLevel) || 'fortgeschritten',
+              description: row.description || '',
+              autoProgression: Boolean(row.auto_progression ?? true),
+              days: row.exercises,
+              updatedAt: row.updated_at || new Date().toISOString(),
+            });
+          }
+          if (Array.isArray(row.custom_exercises)) {
+            setCustomExercises(row.custom_exercises);
+          }
+          if (row.checked_map && typeof row.checked_map === 'object') {
+            setManualCheckedMap(row.checked_map as Record<string, boolean>);
+          }
+        }
 
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEYS.weightLogs, JSON.stringify(weightLogs));
-  }, [weightLogs, hydrated]);
+        if (strengthRes.data && strengthRes.data.length > 0) {
+          setStrengthLogs(
+            strengthRes.data.map((r) => ({
+              id: r.id,
+              exerciseId: r.exercise_id,
+              exerciseName: r.exercise_name,
+              category: r.category as ExerciseCategory,
+              weightKg: Number(r.weight_kg) || 0,
+              sets: Number(r.sets) || 3,
+              reps: Number(r.reps) || 0,
+              durationSeconds: Number(r.duration_seconds) || 0,
+              restSeconds: Number(r.rest_seconds) || 60,
+              performedAt: String(r.performed_at).split('T')[0],
+              notes: r.notes || undefined,
+            }))
+          );
+        }
 
-  // Supabase Auth Session Listener
+        if (cardioRes.data && cardioRes.data.length > 0) {
+          setCardioLogs(
+            cardioRes.data.map((r) => ({
+              id: r.id,
+              discipline: r.discipline as 'laufen' | 'radfahren',
+              distanceKm: Number(r.distance_km) || 0,
+              durationMinutes: Number(r.duration_minutes) || 0,
+              elevationMeters: Number(r.elevation_meters) || 0,
+              performedAt: String(r.performed_at).split('T')[0],
+              notes: r.notes || undefined,
+            }))
+          );
+        }
+
+        if (weightRes.data && weightRes.data.length > 0) {
+          setWeightLogs(
+            weightRes.data.map((r) => ({
+              id: r.id,
+              weightKg: Number(r.weight_kg) || 80,
+              systolicBp: r.systolic_bp ? Number(r.systolic_bp) : undefined,
+              diastolicBp: r.diastolic_bp ? Number(r.diastolic_bp) : undefined,
+              measuredAt: String(r.measured_at).split('T')[0],
+              notes: r.notes || undefined,
+            }))
+          );
+        }
+
+        setCloudDataLoadedForUser(activeUser.id);
+        setSyncStatus('synced');
+      } catch {
+        setCloudDataLoadedForUser(activeUser.id);
+        setSyncStatus('local');
+      }
+    },
+    [loadLocalScopeData]
+  );
+
+  // Supabase Auth Session Listener + Initial Load
   useEffect(() => {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client) {
+      loadLocalScopeData('guest');
+      setAuthChecked(true);
+      return;
+    }
 
     client.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
         setUser(data.session.user);
-        setSyncStatus('synced');
+        loadUserCloudData(data.session.user);
+      } else {
+        loadLocalScopeData('guest');
       }
+      setAuthChecked(true);
     });
 
     const { data: sub } = client.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setSyncStatus(session?.user ? 'synced' : 'local');
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      if (nextUser) {
+        loadUserCloudData(nextUser);
+      } else {
+        setCloudDataLoadedForUser(null);
+        setSyncStatus('local');
+      }
     });
 
     return () => {
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [loadLocalScopeData, loadUserCloudData]);
+
+  // Save to user-scoped localStorage whenever state updates
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(getScopedKey(STORAGE_KEYS.plan), JSON.stringify(plan));
+  }, [plan, hydrated, getScopedKey]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(
+      getScopedKey(STORAGE_KEYS.customExercises),
+      JSON.stringify(customExercises)
+    );
+  }, [customExercises, hydrated, getScopedKey]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(
+      getScopedKey('fitpulse_checked_map_v1'),
+      JSON.stringify(manualCheckedMap)
+    );
+  }, [manualCheckedMap, hydrated, getScopedKey]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(
+      getScopedKey(STORAGE_KEYS.strengthLogs),
+      JSON.stringify(strengthLogs)
+    );
+  }, [strengthLogs, hydrated, getScopedKey]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(getScopedKey(STORAGE_KEYS.cardioLogs), JSON.stringify(cardioLogs));
+  }, [cardioLogs, hydrated, getScopedKey]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(getScopedKey(STORAGE_KEYS.weightLogs), JSON.stringify(weightLogs));
+  }, [weightLogs, hydrated, getScopedKey]);
+
+  // Automatically sync 7-day plan, custom exercises, and daily check-offs to Supabase for the logged-in user
+  useEffect(() => {
+    if (!hydrated || !user || cloudDataLoadedForUser !== user.id) return;
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const timer = setTimeout(async () => {
+      setSyncStatus('syncing');
+      await client.from('training_plans').upsert(
+        {
+          user_id: user.id,
+          name: plan.name,
+          goal: plan.goal,
+          level: plan.level,
+          description: plan.description,
+          auto_progression: plan.autoProgression,
+          exercises: plan.days,
+          custom_exercises: customExercises,
+          checked_map: manualCheckedMap,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
+      setSyncStatus('synced');
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [plan, customExercises, manualCheckedMap, hydrated, user, cloudDataLoadedForUser]);
 
   // Currently selected DayPlan (Montag .. Sonntag)
   const selectedDayPlan = useMemo(() => {
@@ -458,8 +649,65 @@ export default function FitPulseApp() {
     setTimeout(() => setSaveToast(null), 4000);
   };
 
-  // Track manual check-offs for daily plan items in addition to logged workouts on inputDate
-  const [manualCheckedMap, setManualCheckedMap] = useState<Record<string, boolean>>({});
+  // Handle Login / Registration on Einstiegsseite & Cloud Modal (for you & your girlfriend)
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthError('Bitte gib deine Gmail-/E-Mail-Adresse und ein Passwort ein.');
+      return;
+    }
+    if (authPassword.trim().length < 6) {
+      setAuthError('Das Passwort muss mindestens 6 Zeichen lang sein.');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      if (authMode === 'register') {
+        const res = await signUpWithEmail(authEmail, authPassword, authDisplayName);
+        if (res.user) {
+          setUser(res.user);
+          setGuestMode(false);
+          setShowCloudModal(false);
+          triggerToast(
+            `Willkommen bei FitPulse, ${
+              res.user.user_metadata?.display_name || res.user.email?.split('@')[0]
+            }!`
+          );
+        }
+      } else {
+        try {
+          const res = await signInWithEmail(authEmail, authPassword);
+          if (res.user) {
+            setUser(res.user);
+            setGuestMode(false);
+            setShowCloudModal(false);
+            triggerToast(
+              `Willkommen zurück, ${
+                res.user.user_metadata?.display_name || res.user.email?.split('@')[0]
+              }!`
+            );
+          }
+        } catch (loginErr) {
+          const msg = loginErr instanceof Error ? loginErr.message : '';
+          if (msg.toLowerCase().includes('invalid login credentials')) {
+            setAuthError(
+              'Konto noch nicht vorhanden oder Passwort falsch. Tipp: Falls du dich zum ersten Mal anmeldest, wechsle oben auf „Neues Konto anlegen“!'
+            );
+          } else {
+            throw loginErr;
+          }
+        }
+      }
+    } catch (err) {
+      setAuthError(
+        err instanceof Error ? err.message : 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.'
+      );
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   // Check if an exercise in the selected day plan is completed for inputDate
   const isDayExerciseCompleted = useCallback(
@@ -555,6 +803,27 @@ export default function FitPulseApp() {
     setManualCheckedMap(nextChecked);
     const nextLogs = [newEntry, ...strengthLogs];
     setStrengthLogs(nextLogs);
+
+    const client = getSupabaseClient();
+    if (client && user) {
+      setSyncStatus('syncing');
+      client
+        .from('strength_logs')
+        .insert({
+          user_id: user.id,
+          exercise_id: newEntry.exerciseId,
+          exercise_name: newEntry.exerciseName,
+          category: newEntry.category,
+          weight_kg: newEntry.weightKg,
+          sets: newEntry.sets,
+          reps: newEntry.reps,
+          duration_seconds: newEntry.durationSeconds,
+          rest_seconds: newEntry.restSeconds,
+          notes: newEntry.notes,
+          performed_at: new Date(newEntry.performedAt).toISOString(),
+        })
+        .then(() => setSyncStatus('synced'));
+    }
 
     advanceToNextDayExercise(exerciseId, nextLogs, nextChecked);
     triggerToast(`✓ "${exDef.name}" abgehakt & geloggt!`);
@@ -674,6 +943,7 @@ export default function FitPulseApp() {
         sets: newEntry.sets,
         reps: newEntry.reps,
         duration_seconds: newEntry.durationSeconds,
+        rest_seconds: newEntry.restSeconds,
         notes: newEntry.notes,
         performed_at: new Date(newEntry.performedAt).toISOString(),
       });
@@ -1103,6 +1373,239 @@ export default function FitPulseApp() {
     };
   }, [allExercises]);
 
+  const activeUserDisplayName =
+    user?.user_metadata?.display_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Gast';
+
+  // Wait briefly while checking existing session so logged-in users don't see a flash
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-[#070a12] flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 animate-pulse">
+            <HeartPulse className="w-8 h-8 text-slate-950" />
+          </div>
+          <div className="text-sm font-bold text-white">FitPulse wird geladen…</div>
+          <div className="text-xs text-slate-400">Cloud-Profil & Trainingsplan werden geprüft</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // EINSTIEGSSEITE (LOGIN / KONTO ANLEGEN VOR DER ÜBERSICHTSSEITE)
+  // ============================================================================
+  if (!user && !guestMode) {
+    return (
+      <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-center items-center p-4 sm:p-6">
+        <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          {/* Left Hero / Branding Column */}
+          <div className="lg:col-span-6 space-y-5 text-center lg:text-left">
+            <div className="inline-flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <HeartPulse className="w-6 h-6 text-slate-950" />
+              </div>
+              <div className="text-left">
+                <div className="text-base font-extrabold text-white tracking-tight">
+                  FitPulse Cloud
+                </div>
+                <div className="text-[11px] text-emerald-400 font-semibold">
+                  Persönliches Trainings- & Gesundheits-Portal
+                </div>
+              </div>
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+              Dein 7-Tage-Trainingsplan, Smart-Tracker & Statistik-Dashboard.
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Melde dich mit deiner <strong>Gmail- oder E-Mail-Adresse</strong> an. Jeder Account
+              (z.B. für dich und deine Freundin) erhält seinen <strong>komplett eigenen, geschützten Bereich</strong> für Wochenplan, eigene Übungen, abgehakte Trainings und Fortschritts-Kurven.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+              <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/90">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                  <Dumbbell className="w-4 h-4" />
+                  1. Wochenplan
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  54+ Übungen mit 60-FPS-Animationen + eigene Übungen & Tags anlegen.
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/90">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400">
+                  <Timer className="w-4 h-4" />
+                  2. Smart-Tracker
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Tagesplan-Checkliste zum Abhaken, Auto-Prefill & Pausen-Countdown.
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/90">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-violet-400">
+                  <BarChart3 className="w-4 h-4" />
+                  3. Live-Charts
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Interaktive Line-Charts für Kraft, Laufen, Radfahren, Gewicht & Blutdruck.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Auth Card */}
+          <div className="lg:col-span-6">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-5">
+              {/* Mode Switcher: Anmelden vs. Neues Konto anlegen */}
+              <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl bg-slate-950 border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('login');
+                    setAuthError(null);
+                  }}
+                  className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition ${
+                    authMode === 'login'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Anmelden
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('register');
+                    setAuthError(null);
+                  }}
+                  className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition ${
+                    authMode === 'register'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Neues Konto anlegen
+                </button>
+              </div>
+
+              <div>
+                <h2 className="text-lg sm:text-xl font-extrabold text-white">
+                  {authMode === 'login'
+                    ? 'Mit deinem Account anmelden'
+                    : 'Eigenes Konto erstellen (Sofort-Start)'}
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  {authMode === 'login'
+                    ? 'Gib deine Gmail-/E-Mail-Adresse und dein Passwort ein, um deinen persönlichen Trainingsplan zu laden.'
+                    : 'Ideal für dich oder deine Freundin: Einfach Namen, Gmail-Adresse und Wunsch-Passwort eingeben – du bist sofort eingeloggt!'}
+                </p>
+              </div>
+
+              {authError && (
+                <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed">
+                  {authError}
+                </div>
+              )}
+
+              <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+                {authMode === 'register' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Dein Vorname / Anzeigename
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="z.B. Fabio oder Name deiner Freundin"
+                      value={authDisplayName}
+                      onChange={(e) => setAuthDisplayName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Gmail- / E-Mail-Adresse
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    placeholder="dein.name@gmail.com"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Passwort (mind. 6 Zeichen)
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition"
+                >
+                  <LogIn className="w-4 h-4" />
+                  {authLoading
+                    ? 'Wird angemeldet…'
+                    : authMode === 'login'
+                    ? 'Jetzt anmelden & Trainingsplan öffnen'
+                    : 'Konto erstellen & direkt starten'}
+                </button>
+              </form>
+
+              <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+                <span>
+                  {authMode === 'login' ? 'Noch kein Konto angelegt?' : 'Bereits registriert?'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(authMode === 'login' ? 'register' : 'login');
+                    setAuthError(null);
+                  }}
+                  className="text-emerald-400 hover:text-emerald-300 font-bold underline underline-offset-4"
+                >
+                  {authMode === 'login'
+                    ? 'Hier in 5 Sekunden neues Konto anlegen →'
+                    : 'Zum Login wechseln →'}
+                </button>
+              </div>
+
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => setGuestMode(true)}
+                  className="text-[11px] text-slate-500 hover:text-slate-300 transition"
+                >
+                  Ohne Anmeldung im lokalen Gast-Modus fortfahren
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-24 md:pb-12 flex flex-col">
       {/* Top App Bar */}
@@ -1122,7 +1625,7 @@ export default function FitPulseApp() {
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
-                Isometrie · Kraft · Ausdauer · Gesundheit
+                {user ? `Eingeloggt als ${activeUserDisplayName}` : 'Gast-Modus (lokal)'}
               </p>
             </div>
           </div>
@@ -1167,7 +1670,7 @@ export default function FitPulseApp() {
             </button>
           </nav>
 
-          {/* Right Actions: Sunday Check-In & Google Login / Cloud Sync */}
+          {/* Right Actions: Sunday Check-In & Account / Cloud Sync */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1197,7 +1700,7 @@ export default function FitPulseApp() {
                 }`}
               />
               <span className="hidden sm:inline">
-                {user ? user.email?.split('@')[0] : 'Google Login & Sync'}
+                {user ? activeUserDisplayName : 'Anmelden'}
               </span>
             </button>
           </div>
@@ -3686,7 +4189,7 @@ export default function FitPulseApp() {
       )}
 
       {/* =========================================================
-          MODAL 3: GOOGLE LOGIN (SUPABASE OAUTH) & ANDROID / VERCEL INFO
+          MODAL 3: ACCOUNT, MULTI-USER PROFIL & CLOUD SYNC INFO
          ========================================================= */}
       {showCloudModal && (
         <div
@@ -3701,7 +4204,7 @@ export default function FitPulseApp() {
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-lg font-extrabold text-white">
-                  Google Login (Supabase) & Android/Web Sync
+                  Dein FitPulse Account & Cloud-Sync
                 </h3>
               </div>
               <button
@@ -3713,69 +4216,67 @@ export default function FitPulseApp() {
               </button>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs text-slate-300">
-              <div className="font-bold text-white flex items-center gap-1.5">
-                <Cloud className="w-4 h-4 text-sky-400" />
-                Sicherheits-Architektur (Zero Password Risk)
-              </div>
-              <p>
-                Der Login erfolgt über offizielles <strong>Google OAuth 2.0 (PKCE)</strong> via Supabase Auth. Die App speichert niemals dein Gmail-Passwort, und PostgreSQL <strong>Row Level Security (RLS)</strong> garantiert, dass ausschließlich deine eigene Google-User-ID (`auth.uid() = user_id`) deine Trainings- und Gesundheitsdaten lesen oder schreiben kann.
-              </p>
-            </div>
-
-            {authError && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs text-rose-200">
-                {authError}
-              </div>
-            )}
-
             {user ? (
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3">
                 <div>
                   <div className="text-xs text-emerald-300 font-semibold">
-                    Verbunden mit Google-Konto
+                    Aktiver Account ({syncStatus === 'syncing' ? 'Synchronisiert…' : 'Cloud Synchronisiert ✓'})
                   </div>
-                  <div className="text-sm font-bold text-white">{user.email}</div>
+                  <div className="text-base font-extrabold text-white mt-0.5">
+                    {activeUserDisplayName}
+                  </div>
+                  <div className="text-xs text-slate-300">{user.email}</div>
                 </div>
                 <button
                   type="button"
                   onClick={async () => {
                     await signOutUser();
                     setUser(null);
+                    setGuestMode(false);
+                    setShowCloudModal(false);
                   }}
-                  className="px-3 py-2 rounded-xl bg-slate-900 text-slate-200 text-xs font-bold flex items-center gap-1.5"
+                  className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-100 text-xs font-bold flex items-center gap-1.5 transition"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Abmelden
+                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                  Abmelden / Konto wechseln
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={async () => {
-                  setAuthError(null);
-                  try {
-                    await signInWithGoogle();
-                  } catch (err) {
-                    setAuthError(
-                      err instanceof Error ? err.message : 'Fehler beim Google-Login'
-                    );
-                  }
-                }}
-                className="w-full py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 transition"
-              >
-                <LogIn className="w-4 h-4" />
-                Mit Google / Gmail anmelden
-              </button>
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
+                  Du befindest dich aktuell im lokalen Gast-Modus. Melde dich mit deiner Gmail-/E-Mail-Adresse an, um deinen persönlichen Trainingsplan in der Cloud zu synchronisieren.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCloudModal(false);
+                    setGuestMode(false);
+                  }}
+                  className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 transition"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Zur Einstiegsseite (Anmelden / Konto erstellen)
+                </button>
+              </div>
             )}
+
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs text-slate-300">
+              <div className="font-bold text-white flex items-center gap-1.5">
+                <Cloud className="w-4 h-4 text-sky-400" />
+                Getrennte Profile (z.B. für dich & deine Freundin)
+              </div>
+              <p>
+                Jedes Konto speichert seinen 7-Tage-Wochenplan, eigene Übungen, abgehakte Trainings und Statistik-Kurven komplett getrennt in eurer Supabase-Datenbank (`auth.uid() = user_id`). Über <strong>„Abmelden / Konto wechseln“</strong> gelangst du jederzeit zurück zur Einstiegsseite.
+              </p>
+            </div>
 
             <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs text-slate-400">
               <div className="font-bold text-slate-200 flex items-center gap-1.5">
                 <Smartphone className="w-4 h-4 text-emerald-400" />
-                Status: {isSupabaseConfigured ? 'Supabase Cloud konfiguriert' : 'Lokaler Sofort-Modus aktiv'}
+                Status: {isSupabaseConfigured ? 'Supabase Cloud aktiv verbunden' : 'Lokaler Modus'}
               </div>
               <p>
-                Alle Eingaben werden sofort lokal gespeichert und bei hinterlegten Supabase-Umgebungsvariablen (`NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) automatisch mit deiner PostgreSQL-Datenbank synchronisiert.
+                Alle Änderungen am Trainingsplan und alle geloggten Einheiten werden automatisch mit deinem Account synchronisiert.
               </p>
             </div>
           </div>
