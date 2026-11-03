@@ -30,6 +30,52 @@ export function getSupabaseClient(): SupabaseClient | null {
   return supabaseInstance;
 }
 
+export async function signInWithGoogle() {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error('Supabase Cloud ist nicht konfiguriert.');
+  }
+
+  // Check if Google OAuth provider is enabled in Supabase Auth settings so the user never lands on a raw 400 JSON page
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/settings`, {
+      headers: {
+        apikey: supabaseKey,
+      },
+    });
+    if (res.ok) {
+      const settings = await res.json();
+      if (settings?.external && settings.external.google === false) {
+        const notEnabledError = new Error('GOOGLE_PROVIDER_NOT_ENABLED');
+        throw notEnabledError;
+      }
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message === 'GOOGLE_PROVIDER_NOT_ENABLED') {
+      throw err;
+    }
+  }
+
+  const redirectTo =
+    typeof window !== 'undefined' ? `${window.location.origin}/` : undefined;
+
+  const { data, error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'select_account',
+      },
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+  return data;
+}
+
 export async function signInWithEmail(email: string, password: string) {
   const client = getSupabaseClient();
   if (!client) {
@@ -73,7 +119,6 @@ export async function signUpWithEmail(
     throw error;
   }
 
-  // Falls trotz Auto-Confirm-Trigger noch keine Session zurückkam, direkt einloggen
   if (data.user && !data.session) {
     const signInRes = await client.auth.signInWithPassword({
       email: cleanEmail,

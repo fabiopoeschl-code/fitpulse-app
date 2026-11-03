@@ -55,6 +55,7 @@ import { InteractiveLineChart, type ChartDataPoint } from '@/components/Interact
 import {
   getSupabaseClient,
   isSupabaseConfigured,
+  signInWithGoogle,
   signInWithEmail,
   signUpWithEmail,
   signOutUser,
@@ -1429,137 +1430,206 @@ export default function FitPulseApp() {
             </div>
           </div>
 
-          {/* Main Login / Register Card */}
+          {/* Main Login Card (Google OAuth Primary + Clean Collapsible Email Fallback) */}
           <div className="bg-slate-900/95 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
-            {/* Mode Switcher: Anmelden vs. Neues Konto anlegen */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('login');
-                  setAuthError(null);
-                }}
-                className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition ${
-                  authMode === 'login'
-                    ? 'bg-emerald-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Anmelden
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('register');
-                  setAuthError(null);
-                }}
-                className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition ${
-                  authMode === 'register'
-                    ? 'bg-emerald-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Neues Konto
-              </button>
-            </div>
-
-            <div>
-              <h2 className="text-base sm:text-lg font-extrabold text-white">
-                {authMode === 'login'
-                  ? 'Willkommen zurück!'
-                  : 'Neues Konto erstellen (Sofort-Start)'}
+            <div className="text-center space-y-1">
+              <h2 className="text-lg sm:text-xl font-extrabold text-white">
+                Anmelden & Trainingsplan starten
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {authMode === 'login'
-                  ? 'Melde dich mit deiner Gmail-/E-Mail-Adresse an.'
-                  : 'Für dich oder deine Freundin: Eigenes Profil mit getrenntem Trainingsplan anlegen.'}
+              <p className="text-xs text-slate-400">
+                Melde dich mit deinem Google-Konto an (eigener Bereich für dich & deine Freundin).
               </p>
             </div>
 
-            {authError && (
+            {/* PRIMARY GOOGLE OAUTH BUTTON */}
+            <button
+              type="button"
+              disabled={authLoading}
+              onClick={async () => {
+                setAuthError(null);
+                setAuthLoading(true);
+                try {
+                  await signInWithGoogle();
+                } catch (err) {
+                  if (
+                    err instanceof Error &&
+                    err.message === 'GOOGLE_PROVIDER_NOT_ENABLED'
+                  ) {
+                    setAuthError('GOOGLE_SETUP_NEEDED');
+                  } else {
+                    setAuthError(
+                      err instanceof Error
+                        ? err.message
+                        : 'Fehler beim Starten von Google OAuth.'
+                    );
+                  }
+                } finally {
+                  setAuthLoading(false);
+                }
+              }}
+              className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 disabled:opacity-60 text-slate-950 font-extrabold text-sm sm:text-base shadow-lg flex items-center justify-center gap-3 transition"
+            >
+              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              <span>Mit Google anmelden</span>
+            </button>
+
+            {/* HELPFUL POPUP / CARD IF GOOGLE OAUTH SWITCH IN SUPABASE IS NOT YET ENABLED */}
+            {authError === 'GOOGLE_SETUP_NEEDED' && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-xs text-slate-200 space-y-2.5">
+                <div className="font-extrabold text-amber-300 text-sm">
+                  Fast fertig: Google OAuth einmalig in deinem Supabase aktivieren
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  Damit Google den Login erlaubt, muss in deinem Supabase-Projekt unter{' '}
+                  <strong>Authentication → Sign In / Providers → Google</strong> deine Google{' '}
+                  <code>Client ID</code> & <code>Client Secret</code> hinterlegt sein:
+                </p>
+                <ol className="list-decimal list-inside space-y-1.5 text-slate-300">
+                  <li>
+                    Öffne{' '}
+                    <a
+                      href="https://console.cloud.google.com/apis/credentials"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sky-400 underline font-semibold"
+                    >
+                      Google Cloud Credentials
+                    </a>{' '}
+                    → <strong>Create Credentials → OAuth client ID</strong> (Web application).
+                  </li>
+                  <li>
+                    Trage als <strong>Authorized redirect URI</strong> diese URL ein:
+                    <div className="mt-1 p-2 rounded-lg bg-slate-950 border border-slate-800 font-mono text-[11px] text-emerald-300 select-all break-all">
+                      https://jpgwqhsztfwjmhanenkk.supabase.co/auth/v1/callback
+                    </div>
+                  </li>
+                  <li>
+                    Kopiere <strong>Client ID</strong> & <strong>Client Secret</strong> in dein{' '}
+                    <a
+                      href="https://supabase.com/dashboard/project/jpgwqhsztfwjmhanenkk/auth/providers"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-400 underline font-semibold"
+                    >
+                      Supabase Google-Provider Dashboard
+                    </a>{' '}
+                    und lege den Schalter auf <strong>Enabled</strong>.
+                  </li>
+                </ol>
+              </div>
+            )}
+
+            {authError && authError !== 'GOOGLE_SETUP_NEEDED' && (
               <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed">
                 {authError}
               </div>
             )}
 
-            <form onSubmit={handleAuthSubmit} className="space-y-3">
-              {authMode === 'register' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Vorname / Anzeigename
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="z.B. Fabio oder Name deiner Freundin"
-                    value={authDisplayName}
-                    onChange={(e) => setAuthDisplayName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Gmail- / E-Mail-Adresse
-                </label>
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="dein.name@gmail.com"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Passwort (mind. 6 Zeichen)
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                  placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition"
-              >
-                <LogIn className="w-4 h-4" />
-                {authLoading
-                  ? 'Wird angemeldet…'
-                  : authMode === 'login'
-                  ? 'Anmelden & starten'
-                  : 'Konto erstellen & direkt starten'}
-              </button>
-            </form>
-
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs text-slate-400">
-              <span>
-                {authMode === 'login' ? 'Zum ersten Mal hier?' : 'Schon ein Konto?'}
-              </span>
+            {/* Collapsible Email / Password Alternative */}
+            <div className="pt-2 border-t border-slate-800/80">
               <button
                 type="button"
-                onClick={() => {
-                  setAuthMode(authMode === 'login' ? 'register' : 'login');
-                  setAuthError(null);
-                }}
-                className="text-emerald-400 hover:text-emerald-300 font-bold"
+                onClick={() => setShowLoginFeaturesAccordion((v) => !v)}
+                className="w-full py-2 flex items-center justify-between text-xs font-bold text-slate-400 hover:text-white"
               >
-                {authMode === 'login' ? 'Neues Konto anlegen →' : 'Zum Login →'}
+                <span>Alternativ direkt mit Gmail-Adresse & Passwort anmelden</span>
+                {showLoginFeaturesAccordion ? (
+                  <ChevronUp className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
               </button>
+
+              {showLoginFeaturesAccordion && (
+                <div className="pt-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-950 border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setAuthError(null);
+                      }}
+                      className={`py-2 rounded-lg text-xs font-extrabold transition ${
+                        authMode === 'login'
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Anmelden
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('register');
+                        setAuthError(null);
+                      }}
+                      className={`py-2 rounded-lg text-xs font-extrabold transition ${
+                        authMode === 'register'
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Neues Konto
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAuthSubmit} className="space-y-2.5">
+                    {authMode === 'register' && (
+                      <input
+                        type="text"
+                        placeholder="Dein Vorname (z.B. Fabio)"
+                        value={authDisplayName}
+                        onChange={(e) => setAuthDisplayName(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white"
+                      />
+                    )}
+                    <input
+                      type="email"
+                      required
+                      placeholder="dein.name@gmail.com"
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white"
+                    />
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder="Passwort (mind. 6 Zeichen)"
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white"
+                    />
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm transition"
+                    >
+                      {authMode === 'login' ? 'Mit E-Mail anmelden' : 'Konto erstellen & starten'}
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
 
-            <div className="text-center">
+            <div className="text-center pt-1">
               <button
                 type="button"
                 onClick={() => setGuestMode(true)}
@@ -1568,38 +1638,6 @@ export default function FitPulseApp() {
                 Ohne Anmeldung im Gast-Modus testen
               </button>
             </div>
-          </div>
-
-          {/* Collapsible Info Accordion on Login Page */}
-          <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowLoginFeaturesAccordion((v) => !v)}
-              className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white"
-            >
-              <span>Was bietet dir FitPulse? (Infos aufklappen)</span>
-              {showLoginFeaturesAccordion ? (
-                <ChevronUp className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-slate-400" />
-              )}
-            </button>
-            {showLoginFeaturesAccordion && (
-              <div className="px-4 pb-4 pt-1 space-y-2 text-xs text-slate-400 border-t border-slate-800/60">
-                <p>
-                  • <strong className="text-emerald-300">1. Wochenplan & Bibliothek:</strong> 54+
-                  animierte Übungen + eigene Übungen mit Tags & Beschreibung anlegen.
-                </p>
-                <p>
-                  • <strong className="text-sky-300">2. Smart-Tracker:</strong> Heutige Übungen
-                  abhaken, Auto-Prefill vom letzten Mal & integrierter Pausen-Countdown.
-                </p>
-                <p>
-                  • <strong className="text-violet-300">3. Live-Statistiken:</strong> Interaktive
-                  Kurven für Kraft, Laufen, Radfahren, Gewicht & Blutdruck.
-                </p>
-              </div>
-            )}
           </div>
         </div>
       </div>
