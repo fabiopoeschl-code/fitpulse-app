@@ -25,6 +25,10 @@ import {
   Search,
   Info,
   Calendar,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  Play,
 } from 'lucide-react';
 import {
   EXERCISES,
@@ -224,13 +228,22 @@ export default function FitPulseApp() {
   const [sundayReminderEnabled, setSundayReminderEnabled] = useState(true);
   const [showSundayModal, setShowSundayModal] = useState(false);
 
-  // Pillar 1: Library Filter & Exercise Detail Modal
+  // Pillar 1: Library Filter, Exercise Detail Modal & Clean Mobile Popups/Accordions
   const [categoryFilter, setCategoryFilter] = useState<ExerciseCategory | 'alle'>('alle');
   const [goalFilter, setGoalFilter] = useState<TrainingGoal | 'alle'>('alle');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailExercise, setSelectedDetailExercise] =
     useState<ExerciseDefinition | null>(null);
   const [addExerciseIdToPlan, setAddExerciseIdToPlan] = useState<string>(EXERCISES[0].id);
+  const [showPlanGeneratorModal, setShowPlanGeneratorModal] = useState(false);
+  const [showDaySettingsModal, setShowDaySettingsModal] = useState(false);
+  const [expandedPlanItemIdx, setExpandedPlanItemIdx] = useState<number | null>(null);
+  const [showTrackerPlanAccordion, setShowTrackerPlanAccordion] = useState(true);
+  const [showTrackerTimer, setShowTrackerTimer] = useState(false);
+  const [showTrackerMeta, setShowTrackerMeta] = useState(false);
+  const [showRecentLogsAccordion, setShowRecentLogsAccordion] = useState(false);
+  const [showStatsFilterAccordion, setShowStatsFilterAccordion] = useState(false);
+  const [showLoginFeaturesAccordion, setShowLoginFeaturesAccordion] = useState(false);
 
   // Pillar 2: Strength / Isometric Tracker State
   const [trackedExerciseId, setTrackedExerciseId] = useState<string>('iso-wall-sit');
@@ -1395,211 +1408,198 @@ export default function FitPulseApp() {
   }
 
   // ============================================================================
-  // EINSTIEGSSEITE (LOGIN / KONTO ANLEGEN VOR DER ÜBERSICHTSSEITE)
+  // EINSTIEGSSEITE (CLEAN MOBILE-FIRST LOGIN / KONTO ANLEGEN)
   // ============================================================================
   if (!user && !guestMode) {
     return (
       <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-center items-center p-4 sm:p-6">
-        <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* Left Hero / Branding Column */}
-          <div className="lg:col-span-6 space-y-5 text-center lg:text-left">
-            <div className="inline-flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <HeartPulse className="w-6 h-6 text-slate-950" />
-              </div>
-              <div className="text-left">
-                <div className="text-base font-extrabold text-white tracking-tight">
-                  FitPulse Cloud
-                </div>
-                <div className="text-[11px] text-emerald-400 font-semibold">
-                  Persönliches Trainings- & Gesundheits-Portal
-                </div>
-              </div>
+        <div className="w-full max-w-md space-y-4">
+          {/* Compact Brand Header */}
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <HeartPulse className="w-6 h-6 text-slate-950" />
             </div>
-
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
-              Dein 7-Tage-Trainingsplan, Smart-Tracker & Statistik-Dashboard.
-            </h1>
-
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Melde dich mit deiner <strong>Gmail- oder E-Mail-Adresse</strong> an. Jeder Account
-              (z.B. für dich und deine Freundin) erhält seinen <strong>komplett eigenen, geschützten Bereich</strong> für Wochenplan, eigene Übungen, abgehakte Trainings und Fortschritts-Kurven.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
-              <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/90">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                  <Dumbbell className="w-4 h-4" />
-                  1. Wochenplan
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  54+ Übungen mit 60-FPS-Animationen + eigene Übungen & Tags anlegen.
-                </p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/90">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400">
-                  <Timer className="w-4 h-4" />
-                  2. Smart-Tracker
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Tagesplan-Checkliste zum Abhaken, Auto-Prefill & Pausen-Countdown.
-                </p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/90">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-violet-400">
-                  <BarChart3 className="w-4 h-4" />
-                  3. Live-Charts
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Interaktive Line-Charts für Kraft, Laufen, Radfahren, Gewicht & Blutdruck.
-                </p>
-              </div>
+            <div>
+              <h1 className="text-xl font-extrabold text-white tracking-tight">
+                FitPulse
+              </h1>
+              <p className="text-xs text-emerald-400 font-semibold">
+                Dein persönlicher Trainings- & Gesundheits-Begleiter
+              </p>
             </div>
           </div>
 
-          {/* Right Auth Card */}
-          <div className="lg:col-span-6">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-5">
-              {/* Mode Switcher: Anmelden vs. Neues Konto anlegen */}
-              <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode('login');
-                    setAuthError(null);
-                  }}
-                  className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition ${
-                    authMode === 'login'
-                      ? 'bg-emerald-500 text-slate-950 shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Anmelden
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode('register');
-                    setAuthError(null);
-                  }}
-                  className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition ${
-                    authMode === 'register'
-                      ? 'bg-emerald-500 text-slate-950 shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Neues Konto anlegen
-                </button>
-              </div>
+          {/* Main Login / Register Card */}
+          <div className="bg-slate-900/95 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
+            {/* Mode Switcher: Anmelden vs. Neues Konto anlegen */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login');
+                  setAuthError(null);
+                }}
+                className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition ${
+                  authMode === 'login'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Anmelden
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('register');
+                  setAuthError(null);
+                }}
+                className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition ${
+                  authMode === 'register'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Neues Konto
+              </button>
+            </div>
 
-              <div>
-                <h2 className="text-lg sm:text-xl font-extrabold text-white">
-                  {authMode === 'login'
-                    ? 'Mit deinem Account anmelden'
-                    : 'Eigenes Konto erstellen (Sofort-Start)'}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  {authMode === 'login'
-                    ? 'Gib deine Gmail-/E-Mail-Adresse und dein Passwort ein, um deinen persönlichen Trainingsplan zu laden.'
-                    : 'Ideal für dich oder deine Freundin: Einfach Namen, Gmail-Adresse und Wunsch-Passwort eingeben – du bist sofort eingeloggt!'}
-                </p>
-              </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-extrabold text-white">
+                {authMode === 'login'
+                  ? 'Willkommen zurück!'
+                  : 'Neues Konto erstellen (Sofort-Start)'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {authMode === 'login'
+                  ? 'Melde dich mit deiner Gmail-/E-Mail-Adresse an.'
+                  : 'Für dich oder deine Freundin: Eigenes Profil mit getrenntem Trainingsplan anlegen.'}
+              </p>
+            </div>
 
-              {authError && (
-                <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed">
-                  {authError}
+            {authError && (
+              <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed">
+                {authError}
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3">
+              {authMode === 'register' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Vorname / Anzeigename
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="z.B. Fabio oder Name deiner Freundin"
+                    value={authDisplayName}
+                    onChange={(e) => setAuthDisplayName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+                  />
                 </div>
               )}
 
-              <form onSubmit={handleAuthSubmit} className="space-y-3.5">
-                {authMode === 'register' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Dein Vorname / Anzeigename
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="z.B. Fabio oder Name deiner Freundin"
-                      value={authDisplayName}
-                      onChange={(e) => setAuthDisplayName(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Gmail- / E-Mail-Adresse
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    autoComplete="email"
-                    placeholder="dein.name@gmail.com"
-                    value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Passwort (mind. 6 Zeichen)
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                    placeholder="••••••••"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition"
-                >
-                  <LogIn className="w-4 h-4" />
-                  {authLoading
-                    ? 'Wird angemeldet…'
-                    : authMode === 'login'
-                    ? 'Jetzt anmelden & Trainingsplan öffnen'
-                    : 'Konto erstellen & direkt starten'}
-                </button>
-              </form>
-
-              <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
-                <span>
-                  {authMode === 'login' ? 'Noch kein Konto angelegt?' : 'Bereits registriert?'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode(authMode === 'login' ? 'register' : 'login');
-                    setAuthError(null);
-                  }}
-                  className="text-emerald-400 hover:text-emerald-300 font-bold underline underline-offset-4"
-                >
-                  {authMode === 'login'
-                    ? 'Hier in 5 Sekunden neues Konto anlegen →'
-                    : 'Zum Login wechseln →'}
-                </button>
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Gmail- / E-Mail-Adresse
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="dein.name@gmail.com"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+                />
               </div>
 
-              <div className="pt-1 text-center">
-                <button
-                  type="button"
-                  onClick={() => setGuestMode(true)}
-                  className="text-[11px] text-slate-500 hover:text-slate-300 transition"
-                >
-                  Ohne Anmeldung im lokalen Gast-Modus fortfahren
-                </button>
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Passwort (mind. 6 Zeichen)
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                  placeholder="••••••••"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+                />
               </div>
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition"
+              >
+                <LogIn className="w-4 h-4" />
+                {authLoading
+                  ? 'Wird angemeldet…'
+                  : authMode === 'login'
+                  ? 'Anmelden & starten'
+                  : 'Konto erstellen & direkt starten'}
+              </button>
+            </form>
+
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs text-slate-400">
+              <span>
+                {authMode === 'login' ? 'Zum ersten Mal hier?' : 'Schon ein Konto?'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode(authMode === 'login' ? 'register' : 'login');
+                  setAuthError(null);
+                }}
+                className="text-emerald-400 hover:text-emerald-300 font-bold"
+              >
+                {authMode === 'login' ? 'Neues Konto anlegen →' : 'Zum Login →'}
+              </button>
             </div>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setGuestMode(true)}
+                className="text-[11px] text-slate-500 hover:text-slate-300 transition"
+              >
+                Ohne Anmeldung im Gast-Modus testen
+              </button>
+            </div>
+          </div>
+
+          {/* Collapsible Info Accordion on Login Page */}
+          <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowLoginFeaturesAccordion((v) => !v)}
+              className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white"
+            >
+              <span>Was bietet dir FitPulse? (Infos aufklappen)</span>
+              {showLoginFeaturesAccordion ? (
+                <ChevronUp className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              )}
+            </button>
+            {showLoginFeaturesAccordion && (
+              <div className="px-4 pb-4 pt-1 space-y-2 text-xs text-slate-400 border-t border-slate-800/60">
+                <p>
+                  • <strong className="text-emerald-300">1. Wochenplan & Bibliothek:</strong> 54+
+                  animierte Übungen + eigene Übungen mit Tags & Beschreibung anlegen.
+                </p>
+                <p>
+                  • <strong className="text-sky-300">2. Smart-Tracker:</strong> Heutige Übungen
+                  abhaken, Auto-Prefill vom letzten Mal & integrierter Pausen-Countdown.
+                </p>
+                <p>
+                  • <strong className="text-violet-300">3. Live-Statistiken:</strong> Interaktive
+                  Kurven für Kraft, Laufen, Radfahren, Gewicht & Blutdruck.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1739,542 +1739,308 @@ export default function FitPulseApp() {
       {/* Main Content Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
         {/* =========================================================
-            SÄULE 1: 7-TAGE-WOCHENPLAN & GROSSE ANIMIERTE BIBLIOTHEK
+            SÄULE 1: 7-TAGE-WOCHENPLAN & BIBLIOTHEK (CLEAN MIT AUFKLAPPEN & POP-UPS)
            ========================================================= */}
         {activeTab === 'pillar1' && (
-          <div className="space-y-6">
-            {/* Sub-Navigation: 7-Tage-Wochenplan vs. Übungsbibliothek */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/70 border border-slate-800/90 p-4 rounded-2xl">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  Säule 1 · Intelligente Wochenplanung & {allExercises.length} animierte Übungen
-                </span>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-0.5">
-                  7-Tage-Trainingsplan & Übungsbibliothek
-                </h2>
+          <div className="space-y-4">
+            {/* Compact Top Switcher & Popup Action Bar */}
+            <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Sub-Tab Switcher: Wochenplan vs. Bibliothek */}
+              <div className="grid grid-cols-2 sm:inline-flex gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setP1SubTab('plan')}
+                  className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-extrabold transition ${
+                    p1SubTab === 'plan'
+                      ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  7-Tage-Plan ({totalWeeklyExercisesCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setP1SubTab('library')}
+                  className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-extrabold transition ${
+                    p1SubTab === 'library'
+                      ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Bibliothek ({allExercises.length})
+                </button>
               </div>
-              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setP1SubTab('plan')}
-                    className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition ${
-                      p1SubTab === 'plan'
-                        ? 'bg-emerald-500 text-slate-950'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    7-Tage-Wochenplan ({totalWeeklyExercisesCount} Einheiten)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setP1SubTab('library')}
-                    className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition ${
-                      p1SubTab === 'library'
-                        ? 'bg-emerald-500 text-slate-950'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Übungsbibliothek ({allExercises.length} Übungen)
-                  </button>
-                </div>
+
+              {/* Action Buttons -> Open Pop-ups instead of cluttering the page */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPlanGeneratorModal(true)}
+                  className="flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>
+                    Ziel: {GOAL_LABELS[plan.goal].title.split(' ')[0]} ·{' '}
+                    {LEVEL_LABELS[plan.level].title}
+                  </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowCreateExerciseModal(true)}
-                  className="px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition"
+                  className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1 shadow-md transition shrink-0"
                 >
-                  <Plus className="w-4 h-4" />
-                  Eigene Übung hinzufügen
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Eigene Übung</span>
                 </button>
               </div>
             </div>
 
             {p1SubTab === 'plan' ? (
-              <div className="space-y-6">
-                {/* Plan Generator Configuration (Goal & Level) */}
-                <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 space-y-5">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-emerald-400" />
-                        Deinen 7-Tage-Wochenplan nach Ziel & Level generieren
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-                        Jeder Wochentag (Mo–So) hat einen eigenen Schwerpunkt mit unterschiedlichen Kraft-, Isometrie- und Dehnübungen sowie perfekt abgestimmten Ausdauertagen.
-                      </p>
-                    </div>
-                    <label className="inline-flex items-center gap-2.5 text-xs sm:text-sm text-slate-200 bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-800 cursor-pointer self-start">
-                      <input
-                        type="checkbox"
-                        checked={plan.autoProgression}
-                        onChange={(e) =>
-                          setPlan({ ...plan, autoProgression: e.target.checked })
-                        }
-                        className="rounded accent-emerald-500 w-4 h-4"
-                      />
-                      <span>Automatische Fortschritts-Anpassung aktiv</span>
-                    </label>
-                  </div>
-
-                  {/* Goal Cards */}
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                      1. Dein Hauptziel wählen
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {(Object.keys(GOAL_LABELS) as TrainingGoal[]).map((g) => {
-                        const info = GOAL_LABELS[g];
-                        const isSelected = plan.goal === g;
-                        return (
-                          <button
-                            key={g}
-                            type="button"
-                            onClick={() =>
-                              setPlan(generatePlanForGoalAndLevel(g, plan.level))
-                            }
-                            className={`text-left p-3.5 rounded-xl border transition flex flex-col justify-between ${
-                              isSelected
-                                ? 'bg-emerald-500/15 border-emerald-400 shadow-lg shadow-emerald-500/10'
-                                : 'bg-slate-950/70 border-slate-800/90 hover:border-slate-700'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-sm text-white">
-                                {info.title}
-                              </span>
-                              {isSelected && (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                              {info.subtitle}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Level Selector */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-slate-800/80">
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                        2. Dein Trainingslevel wählen
-                      </label>
-                      <div className="inline-flex rounded-xl bg-slate-950 p-1 border border-slate-800">
-                        {(Object.keys(LEVEL_LABELS) as FitnessLevel[]).map((lvl) => (
-                          <button
-                            key={lvl}
-                            type="button"
-                            onClick={() =>
-                              setPlan(generatePlanForGoalAndLevel(plan.goal, lvl))
-                            }
-                            className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition ${
-                              plan.level === lvl
-                                ? 'bg-emerald-500 text-slate-950'
-                                : 'text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            {LEVEL_LABELS[lvl].title}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-slate-400">
-                      Aktiver Plan: <strong className="text-white">{plan.name}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* =========================================================
-                    7-DAY WEEK OVERVIEW & INTERACTIVE DAY SELECTOR (Mo - So)
-                   ========================================================= */}
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-                    <div>
-                      <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-emerald-400" />
-                        Wochenübersicht (Montag bis Sonntag)
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-                        Wähle einen Wochentag aus, um dessen Übungen oder Ausdauer-Einheit anzusehen, zu starten oder individuell anzupassen.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 7 Weekday Cards Bar */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-                    {plan.days.map((day, idx) => {
-                      const isSelected = selectedDayIndex === idx;
-                      const isToday = todayWeekdayIndex === idx;
-                      const typeMeta = DAY_TYPE_LABELS[day.dayType];
-                      return (
-                        <button
-                          key={day.dayIndex}
-                          type="button"
-                          onClick={() => setSelectedDayIndex(idx)}
-                          className={`text-left p-3 rounded-2xl border transition flex flex-col justify-between gap-2 ${
-                            isSelected
-                              ? 'bg-emerald-500/15 border-emerald-400 ring-2 ring-emerald-400/30 shadow-lg'
-                              : 'bg-slate-900/80 border-slate-800/90 hover:border-slate-700'
+              <div className="space-y-4">
+                {/* Compact 7-Weekday Strip (Mo - So fit on one row on mobile) */}
+                <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                  {plan.days.map((day, idx) => {
+                    const isSelected = selectedDayIndex === idx;
+                    const isToday = todayWeekdayIndex === idx;
+                    return (
+                      <button
+                        key={day.dayIndex}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDayIndex(idx);
+                          setExpandedPlanItemIdx(null);
+                        }}
+                        className={`py-2 px-1 sm:p-3 rounded-xl sm:rounded-2xl border text-center transition flex flex-col items-center justify-between gap-1 ${
+                          isSelected
+                            ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-extrabold shadow-lg shadow-emerald-500/15'
+                            : 'bg-slate-900/85 text-slate-200 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs sm:text-sm font-extrabold">
+                            {day.dayShort}
+                          </span>
+                          {isToday && !isSelected && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          )}
+                        </div>
+                        <span
+                          className={`text-[9px] sm:text-[10px] font-semibold truncate max-w-full ${
+                            isSelected ? 'text-slate-900' : 'text-slate-400'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-xs font-extrabold text-white">
-                              {day.dayName}
-                            </span>
-                            {isToday && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950">
-                                Heute
-                              </span>
-                            )}
-                          </div>
+                          {day.dayType === 'ausdauer'
+                            ? 'Cardio'
+                            : day.dayType === 'ruhetag'
+                            ? 'Ruhe'
+                            : `${day.items.length} Üb.`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border w-fit ${typeMeta.color}`}
-                          >
-                            {day.dayType === 'ausdauer'
-                              ? day.cardioBlock?.discipline === 'radfahren'
-                                ? 'Rad-Ausdauer'
-                                : 'Lauf-Ausdauer'
-                              : day.dayType === 'isometrie'
-                              ? 'Isometrie & Kraft'
-                              : day.dayType === 'kraft'
-                              ? 'Kraft-Split'
-                              : day.dayType === 'mobility'
-                              ? 'Mobility & Stretch'
-                              : 'Ruhe & Check-in'}
-                          </span>
-
-                          <div className="text-[11px] text-slate-300 font-medium line-clamp-2 leading-snug">
-                            {day.title}
-                          </div>
-
-                          <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800/80 flex items-center justify-between">
-                            <span>
-                              {day.cardioBlock
-                                ? `${day.cardioBlock.targetDistanceKm} km + ${day.items.length} Dehnung`
-                                : `${day.items.length} Übungen`}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Selected Day Header & Customizer */}
-                  <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 space-y-4">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="px-3 py-1 rounded-xl bg-emerald-500 text-slate-950 font-extrabold text-xs">
-                            {selectedDayPlan.dayName}
-                          </span>
-                          <span
-                            className={`text-xs font-semibold px-3 py-1 rounded-xl border ${
-                              DAY_TYPE_LABELS[selectedDayPlan.dayType].color
-                            }`}
-                          >
-                            {DAY_TYPE_LABELS[selectedDayPlan.dayType].label}
-                          </span>
-                        </div>
-                        <input
-                          type="text"
-                          value={selectedDayPlan.title}
-                          onChange={(e) =>
-                            updateSelectedDay((d) => ({ ...d, title: e.target.value }))
-                          }
-                          className="w-full bg-transparent text-lg sm:text-xl font-extrabold text-white focus:outline-none focus:underline pt-1"
-                        />
-                        <p className="text-xs sm:text-sm text-slate-400">
-                          {selectedDayPlan.subtitle}
-                        </p>
+                {/* Selected Day Card with Collapsible Exercise Rows */}
+                <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 space-y-4">
+                  {/* Day Header + Pop-up Trigger for Day Settings / Add Exercise */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-xs">
+                          {selectedDayPlan.dayName}
+                        </span>
+                        <span
+                          className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-lg border ${
+                            DAY_TYPE_LABELS[selectedDayPlan.dayType].color
+                          }`}
+                        >
+                          {DAY_TYPE_LABELS[selectedDayPlan.dayType].label}
+                        </span>
                       </div>
-
-                      {/* Day Type Switcher + Add Exercise to this Day */}
-                      <div className="flex flex-wrap items-end gap-3">
-                        <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                            Tagestyp ändern (z.B. Ausdauertag einfügen)
-                          </label>
-                          <select
-                            value={selectedDayPlan.dayType}
-                            onChange={(e) => {
-                              const newType = e.target.value as DayPlanType;
-                              updateSelectedDay((d) => ({
-                                ...d,
-                                dayType: newType,
-                                cardioBlock:
-                                  newType === 'ausdauer' && !d.cardioBlock
-                                    ? {
-                                        discipline: 'laufen',
-                                        targetDistanceKm: 6.0,
-                                        targetDurationMinutes: 35,
-                                        targetElevationMeters: 50,
-                                        intensityZone: 'Zone 2 (Grundlagenausdauer)',
-                                        coachingNote:
-                                          'Lockeres Tempo, anschließend 5 Min. Dehnen.',
-                                      }
-                                    : newType !== 'ausdauer'
-                                    ? undefined
-                                    : d.cardioBlock,
-                              }));
-                              triggerToast(
-                                `${selectedDayPlan.dayName} auf "${DAY_TYPE_LABELS[newType].label}" umgestellt!`
-                              );
-                            }}
-                            className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-white"
-                          >
-                            <option value="kraft">Kraft & Muskel-Tag</option>
-                            <option value="isometrie">Isometrie & Gefäß-Tag</option>
-                            <option value="ausdauer">Ausdauer-Tag (Laufen / Radfahren)</option>
-                            <option value="mobility">Mobility & Dehn-Tag</option>
-                            <option value="ruhetag">Regeneration & Ruhetag</option>
-                          </select>
-                        </div>
-
-                        <div className="flex items-end gap-2">
-                          <div>
-                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                              Übung zu {selectedDayPlan.dayName} hinzufügen
-                            </label>
-                            <select
-                              value={addExerciseIdToPlan}
-                              onChange={(e) => setAddExerciseIdToPlan(e.target.value)}
-                              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white max-w-[230px]"
-                            >
-                              {allExercises.map((ex) => (
-                                <option key={ex.id} value={ex.id}>
-                                  [{CATEGORY_LABELS[ex.category].title.split(' ')[0]}] {ex.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const ex = allExercises.find((e) => e.id === addExerciseIdToPlan);
-                              if (!ex) return;
-                              updateSelectedDay((d) => ({
-                                ...d,
-                                items: [
-                                  ...d.items,
-                                  {
-                                    exerciseId: ex.id,
-                                    sets: ex.defaultSets,
-                                    targetWeightKg: ex.defaultWeightKg,
-                                    targetReps: ex.defaultReps,
-                                    targetSeconds: ex.defaultSeconds,
-                                    restSeconds: ex.restSeconds,
-                                  },
-                                ],
-                              }));
-                              triggerToast(
-                                `"${ex.name}" am ${selectedDayPlan.dayName} hinzugefügt!`
-                              );
-                            }}
-                            className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-1 shrink-0"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Ergänzen
-                          </button>
-                        </div>
-                      </div>
+                      <h3 className="text-base sm:text-lg font-extrabold text-white mt-1.5">
+                        {selectedDayPlan.title}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {selectedDayPlan.subtitle}
+                      </p>
                     </div>
 
-                    {/* DEDICATED CARDIO BLOCK IF DAY IS AN AUSDAUERTAG */}
-                    {selectedDayPlan.cardioBlock && (
-                      <div className="rounded-2xl bg-gradient-to-r from-sky-500/15 via-slate-950 to-amber-500/10 border border-sky-500/40 p-4 sm:p-5 space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-300">
-                              {selectedDayPlan.cardioBlock.discipline === 'radfahren' ? (
-                                <Bike className="w-6 h-6" />
-                              ) : (
-                                <Footprints className="w-6 h-6" />
-                              )}
-                            </div>
-                            <div>
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-sky-300">
-                                Geplante Ausdauer-Einheit am {selectedDayPlan.dayName}
-                              </span>
-                              <h4 className="text-base sm:text-lg font-extrabold text-white">
-                                {selectedDayPlan.cardioBlock.discipline === 'radfahren'
-                                  ? 'Radfahren / Cycling'
-                                  : 'Laufen / Running'}{' '}
-                                ({selectedDayPlan.cardioBlock.targetDistanceKm} km ·{' '}
-                                {selectedDayPlan.cardioBlock.targetDurationMinutes} Min.)
-                              </h4>
-                            </div>
-                          </div>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setShowDaySettingsModal(true)}
+                        className="px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Übung ergänzen / Tag anpassen</span>
+                      </button>
+                    </div>
+                  </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const cb = selectedDayPlan.cardioBlock!;
-                              startPlannedCardioInTracker(
-                                cb.discipline,
-                                cb.targetDistanceKm,
-                                cb.targetDurationMinutes,
-                                cb.targetElevationMeters || 50,
-                                `${selectedDayPlan.dayName}: ${selectedDayPlan.title}`
-                              );
-                            }}
-                            className="px-4 py-2.5 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center gap-2 self-start sm:self-auto shadow-lg"
-                          >
-                            <Activity className="w-4 h-4" />
-                            Im Ausdauer-Tracker starten / loggen
-                          </button>
+                  {/* Compact Cardio Banner if Day has Cardio Block */}
+                  {selectedDayPlan.cardioBlock && (
+                    <div className="rounded-xl bg-sky-500/10 border border-sky-500/30 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-300 shrink-0">
+                          {selectedDayPlan.cardioBlock.discipline === 'radfahren' ? (
+                            <Bike className="w-5 h-5" />
+                          ) : (
+                            <Footprints className="w-5 h-5" />
+                          )}
                         </div>
-
-                        {/* Editable Cardio Day Targets */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5">
-                            <label className="block text-[10px] uppercase text-slate-400">
-                              Disziplin
-                            </label>
-                            <select
-                              value={selectedDayPlan.cardioBlock.discipline}
-                              onChange={(e) =>
-                                updateSelectedDay((d) => ({
-                                  ...d,
-                                  cardioBlock: d.cardioBlock
-                                    ? {
-                                        ...d.cardioBlock,
-                                        discipline: e.target.value as 'laufen' | 'radfahren',
-                                      }
-                                    : undefined,
-                                }))
-                              }
-                              className="w-full bg-transparent text-sm font-bold text-white focus:outline-none mt-1"
-                            >
-                              <option value="laufen" className="bg-slate-900">
-                                Laufen
-                              </option>
-                              <option value="radfahren" className="bg-slate-900">
-                                Radfahren
-                              </option>
-                            </select>
+                        <div>
+                          <div className="text-xs font-extrabold text-white">
+                            {selectedDayPlan.cardioBlock.discipline === 'radfahren'
+                              ? 'Radfahren'
+                              : 'Laufen'}{' '}
+                            · {selectedDayPlan.cardioBlock.targetDistanceKm} km in{' '}
+                            {selectedDayPlan.cardioBlock.targetDurationMinutes} Min.
                           </div>
-
-                          <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5">
-                            <label className="block text-[10px] uppercase text-slate-400">
-                              Ziel-Distanz (km)
-                            </label>
-                            <input
-                              type="number"
-                              step="0.5"
-                              min="0.5"
-                              value={selectedDayPlan.cardioBlock.targetDistanceKm}
-                              onChange={(e) =>
-                                updateSelectedDay((d) => ({
-                                  ...d,
-                                  cardioBlock: d.cardioBlock
-                                    ? {
-                                        ...d.cardioBlock,
-                                        targetDistanceKm: Number(e.target.value) || 5,
-                                      }
-                                    : undefined,
-                                }))
-                              }
-                              className="w-full bg-transparent text-sm font-bold text-sky-300 focus:outline-none mt-1"
-                            />
-                          </div>
-
-                          <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5">
-                            <label className="block text-[10px] uppercase text-slate-400">
-                              Ziel-Dauer (Min.)
-                            </label>
-                            <input
-                              type="number"
-                              step="5"
-                              min="5"
-                              value={selectedDayPlan.cardioBlock.targetDurationMinutes}
-                              onChange={(e) =>
-                                updateSelectedDay((d) => ({
-                                  ...d,
-                                  cardioBlock: d.cardioBlock
-                                    ? {
-                                        ...d.cardioBlock,
-                                        targetDurationMinutes: Number(e.target.value) || 30,
-                                      }
-                                    : undefined,
-                                }))
-                              }
-                              className="w-full bg-transparent text-sm font-bold text-white focus:outline-none mt-1"
-                            />
-                          </div>
-
-                          <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5">
-                            <label className="block text-[10px] uppercase text-slate-400">
-                              Höhenmeter (opt.)
-                            </label>
-                            <input
-                              type="number"
-                              step="10"
-                              min="0"
-                              value={selectedDayPlan.cardioBlock.targetElevationMeters || 0}
-                              onChange={(e) =>
-                                updateSelectedDay((d) => ({
-                                  ...d,
-                                  cardioBlock: d.cardioBlock
-                                    ? {
-                                        ...d.cardioBlock,
-                                        targetElevationMeters: Number(e.target.value) || 0,
-                                      }
-                                    : undefined,
-                                }))
-                              }
-                              className="w-full bg-transparent text-sm font-bold text-white focus:outline-none mt-1"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="text-xs text-slate-300 flex flex-wrap items-center justify-between gap-2 pt-1">
-                          <span>
-                            <strong className="text-sky-300">Intensität:</strong>{' '}
+                          <div className="text-[11px] text-slate-400">
                             {selectedDayPlan.cardioBlock.intensityZone}
-                          </span>
-                          <span className="text-slate-400">
-                            {selectedDayPlan.cardioBlock.coachingNote}
-                          </span>
+                          </div>
                         </div>
                       </div>
-                    )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowDaySettingsModal(true)}
+                          className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-xs font-semibold"
+                        >
+                          Ziele ändern
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cb = selectedDayPlan.cardioBlock!;
+                            startPlannedCardioInTracker(
+                              cb.discipline,
+                              cb.targetDistanceKm,
+                              cb.targetDurationMinutes,
+                              cb.targetElevationMeters || 50,
+                              `${selectedDayPlan.dayName}: ${selectedDayPlan.title}`
+                            );
+                          }}
+                          className="px-3.5 py-1.5 rounded-lg bg-sky-400 hover:bg-sky-300 text-slate-950 font-extrabold text-xs flex items-center gap-1.5"
+                        >
+                          <Play className="w-3.5 h-3.5" />
+                          Cardio starten
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                    {/* Exercises for the Selected Weekday */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      {selectedDayPlan.items.map((item, idx) => {
-                        const ex = allExercises.find((e) => e.id === item.exerciseId);
-                        if (!ex) return null;
+                  {/* Accordion Exercise List: Compact Rows that unfold on tap */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                      <span>
+                        Tippe auf eine Übung zum <strong>Aufklappen & Bearbeiten</strong> oder auf{' '}
+                        <strong>▶ Start</strong> für den Tracker:
+                      </span>
+                      <span>{selectedDayPlan.items.length} Übungen</span>
+                    </div>
 
-                        const lastLog = strengthLogs
-                          .filter((l) => l.exerciseId === ex.id)
-                          .sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
+                    {selectedDayPlan.items.map((item, idx) => {
+                      const ex = allExercises.find((e) => e.id === item.exerciseId);
+                      if (!ex) return null;
+                      const isExpanded = expandedPlanItemIdx === idx;
+                      const lastLog = strengthLogs
+                        .filter((l) => l.exerciseId === ex.id)
+                        .sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
 
-                        return (
+                      return (
+                        <div
+                          key={`${item.exerciseId}-${idx}`}
+                          className={`rounded-2xl border transition overflow-hidden ${
+                            isExpanded
+                              ? 'bg-slate-950 border-emerald-500/50 shadow-lg'
+                              : 'bg-slate-950/75 border-slate-800/90 hover:border-slate-700'
+                          }`}
+                        >
+                          {/* Compact Always-Visible Header Row */}
                           <div
-                            key={`${item.exerciseId}-${idx}`}
-                            className="rounded-2xl bg-slate-950/85 border border-slate-800/90 p-4 flex flex-col justify-between gap-4 hover:border-slate-700 transition"
+                            onClick={() =>
+                              setExpandedPlanItemIdx(isExpanded ? null : idx)
+                            }
+                            className="p-3 sm:p-3.5 flex items-center justify-between gap-2.5 cursor-pointer"
                           >
-                            <div className="space-y-3">
-                              {/* Top Row: Index, Category Badge & Reorder/Delete buttons */}
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold flex items-center justify-center">
-                                    {idx + 1}
-                                  </span>
-                                  <span
-                                    className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
-                                      CATEGORY_LABELS[ex.category].badge
-                                    }`}
-                                  >
-                                    {CATEGORY_LABELS[ex.category].title}
-                                  </span>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 text-xs font-extrabold flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="text-xs sm:text-sm font-bold text-white truncate">
+                                  {ex.name}
                                 </div>
+                                <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap mt-0.5">
+                                  <span className="text-emerald-300 font-semibold">
+                                    {item.sets} ×{' '}
+                                    {ex.isTimed
+                                      ? `${item.targetSeconds} Sek.`
+                                      : `${item.targetReps} Wdh.`}
+                                    {item.targetWeightKg > 0
+                                      ? ` · ${item.targetWeightKg} kg`
+                                      : ''}
+                                  </span>
+                                  <span>· {item.restSeconds}s Pause</span>
+                                </div>
+                              </div>
+                            </div>
 
-                                <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedDetailExercise(ex);
+                                }}
+                                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800"
+                                title="3D-Animation & Anleitung als Pop-up öffnen"
+                              >
+                                <Info className="w-4 h-4 text-sky-400" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startExerciseInTracker(ex.id);
+                                }}
+                                className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center gap-1"
+                              >
+                                <Play className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline">Start</span>
+                              </button>
+                              <div className="p-1.5 text-slate-400">
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4 text-emerald-400" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Expanded Collapsible Details (Only rendered when tapped!) */}
+                          {isExpanded && (
+                            <div className="px-3.5 pb-4 pt-2 border-t border-slate-800/80 space-y-3 bg-slate-900/40">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span
+                                  className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                                    CATEGORY_LABELS[ex.category].badge
+                                  }`}
+                                >
+                                  {CATEGORY_LABELS[ex.category].title} · {ex.equipment}
+                                </span>
+
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedDetailExercise(ex)}
+                                    className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-bold flex items-center gap-1"
+                                  >
+                                    <Info className="w-3.5 h-3.5" />
+                                    3D-Animation & Anleitung (Pop-up)
+                                  </button>
                                   <button
                                     type="button"
                                     disabled={idx === 0}
@@ -2286,8 +2052,9 @@ export default function FitPulseApp() {
                                         copy[idx] = temp;
                                         return { ...d, items: copy };
                                       });
+                                      setExpandedPlanItemIdx(idx - 1);
                                     }}
-                                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 disabled:opacity-30"
+                                    className="p-1.5 rounded-lg bg-slate-900 text-slate-300 disabled:opacity-30"
                                     title="Nach oben"
                                   >
                                     <ArrowUp className="w-3.5 h-3.5" />
@@ -2303,8 +2070,9 @@ export default function FitPulseApp() {
                                         copy[idx] = temp;
                                         return { ...d, items: copy };
                                       });
+                                      setExpandedPlanItemIdx(idx + 1);
                                     }}
-                                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 disabled:opacity-30"
+                                    className="p-1.5 rounded-lg bg-slate-900 text-slate-300 disabled:opacity-30"
                                     title="Nach unten"
                                   >
                                     <ArrowDown className="w-3.5 h-3.5" />
@@ -2316,45 +2084,19 @@ export default function FitPulseApp() {
                                         ...d,
                                         items: d.items.filter((_, i) => i !== idx),
                                       }));
+                                      setExpandedPlanItemIdx(null);
                                     }}
-                                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400"
-                                    title="Aus diesem Wochentag entfernen"
+                                    className="p-1.5 rounded-lg bg-slate-900 text-rose-400 hover:bg-rose-950"
+                                    title="Entfernen"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>
 
-                              {/* Animated Exercise Preview */}
-                              <ExerciseAnimation
-                                pose={ex.animationPose}
-                                category={ex.category}
-                                size="sm"
-                              />
-
-                              {/* Exercise Name & Health / Muscle Info */}
-                              <div>
-                                <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-bold text-white text-base">
-                                    {ex.name}
-                                  </h4>
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedDetailExercise(ex)}
-                                    className="text-xs text-emerald-400 hover:underline flex items-center gap-1 shrink-0"
-                                  >
-                                    <Info className="w-3.5 h-3.5" />
-                                    Anleitung
-                                  </button>
-                                </div>
-                                <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                                  {ex.healthBenefits}
-                                </p>
-                              </div>
-
-                              {/* Editable Target Parameters (Sets, Weight, Duration/Reps, Pause) */}
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                                <div className="bg-slate-900 border border-slate-800 rounded-xl p-2">
+                              {/* Editable Target Parameters */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="bg-slate-950 border border-slate-800 rounded-xl p-2">
                                   <label className="block text-[10px] uppercase text-slate-400">
                                     Sätze
                                   </label>
@@ -2375,7 +2117,7 @@ export default function FitPulseApp() {
                                   />
                                 </div>
 
-                                <div className="bg-slate-900 border border-slate-800 rounded-xl p-2">
+                                <div className="bg-slate-950 border border-slate-800 rounded-xl p-2">
                                   <label className="block text-[10px] uppercase text-slate-400">
                                     Gewicht (kg)
                                   </label>
@@ -2397,7 +2139,7 @@ export default function FitPulseApp() {
                                 </div>
 
                                 {ex.isTimed ? (
-                                  <div className="bg-slate-900 border border-violet-500/30 rounded-xl p-2">
+                                  <div className="bg-slate-950 border border-violet-500/30 rounded-xl p-2">
                                     <label className="block text-[10px] uppercase text-violet-300">
                                       Dauer (Sek.)
                                     </label>
@@ -2418,7 +2160,7 @@ export default function FitPulseApp() {
                                     />
                                   </div>
                                 ) : (
-                                  <div className="bg-slate-900 border border-emerald-500/30 rounded-xl p-2">
+                                  <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-2">
                                     <label className="block text-[10px] uppercase text-emerald-300">
                                       Wiederholungen
                                     </label>
@@ -2439,7 +2181,7 @@ export default function FitPulseApp() {
                                   </div>
                                 )}
 
-                                <div className="bg-slate-900 border border-amber-500/30 rounded-xl p-2">
+                                <div className="bg-slate-950 border border-amber-500/30 rounded-xl p-2">
                                   <label className="block text-[10px] uppercase text-amber-300">
                                     Pause (Sek.)
                                   </label>
@@ -2460,54 +2202,39 @@ export default function FitPulseApp() {
                                   />
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Bottom Row: Last Logged Info & Start in Tracker Button */}
-                            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                              <div className="text-[11px] text-slate-400">
-                                {lastLog ? (
-                                  <span>
-                                    Letztes Mal ({lastLog.performedAt}):{' '}
-                                    <strong className="text-slate-200">
-                                      {ex.isTimed
-                                        ? `${lastLog.durationSeconds}s`
-                                        : `${lastLog.weightKg}kg × ${lastLog.reps}`}
-                                    </strong>
-                                  </span>
-                                ) : (
-                                  <span>Noch nicht geloggt</span>
-                                )}
+                              <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                                <span>
+                                  {lastLog
+                                    ? `Letztes Training (${lastLog.performedAt}): ${
+                                        ex.isTimed
+                                          ? `${lastLog.durationSeconds} Sek.`
+                                          : `${lastLog.weightKg} kg × ${lastLog.reps} Wdh.`
+                                      }`
+                                    : 'Noch kein Training für diese Übung geloggt'}
+                                </span>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => startExerciseInTracker(ex.id)}
-                                className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition shadow-md"
-                              >
-                                <Timer className="w-3.5 h-3.5" />
-                                Übung starten
-                              </button>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             ) : (
-              /* SUB-VIEW B: COMPLETE ANIMATED EXERCISE LIBRARY (56+ Exercises + Custom Exercises) */
-              <div className="space-y-5">
-                {/* Filter Bar + Create Custom Exercise CTA */}
-                <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 space-y-4">
-                  <div className="flex flex-col sm:flex-row gap-3">
+              /* SUB-VIEW B: CLEAN EXERCISE LIBRARY (COMPACT LIST + POP-UP DETAILS) */
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-3.5 space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-2.5">
                     <div className="relative flex-1">
                       <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={`In ${allExercises.length} Übungen nach Name, Beschreibung, Gerät oder Muskel-Tag suchen...`}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                        placeholder={`Übung, Muskel oder Gerät suchen (${allExercises.length})...`}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                     <select
@@ -2515,52 +2242,32 @@ export default function FitPulseApp() {
                       onChange={(e) =>
                         setGoalFilter(e.target.value as TrainingGoal | 'alle')
                       }
-                      className="bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white"
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white"
                     >
-                      <option value="alle">Alle Trainingsziele</option>
-                      <option value="blutdruck">Ziel: Blutdruck senken</option>
-                      <option value="muskelaufbau">Ziel: Muskelaufbau</option>
-                      <option value="fit_im_alter">Ziel: Fit im Alter</option>
-                      <option value="ausdauer">Ziel: Ausdauer</option>
+                      <option value="alle">Alle Ziele</option>
+                      <option value="blutdruck">Blutdruck senken</option>
+                      <option value="muskelaufbau">Muskelaufbau</option>
+                      <option value="fit_im_alter">Fit im Alter</option>
+                      <option value="ausdauer">Ausdauer</option>
                     </select>
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateExerciseModal(true)}
-                      className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 shrink-0 shadow-md"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Eigene Übung anlegen
-                    </button>
                   </div>
 
-                  {/* Category Filter Pills with Counts */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  {/* Category Filter Pills */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                     {(
                       [
                         { id: 'alle', label: `Alle (${categoryCounts.alle})` },
-                        {
-                          id: 'isometrisch',
-                          label: `Isometrisch (${categoryCounts.isometrisch})`,
-                        },
-                        {
-                          id: 'geraete',
-                          label: `Kraft mit Geräten (${categoryCounts.geraete})`,
-                        },
-                        {
-                          id: 'koerpergewicht',
-                          label: `Kraft ohne Geräte (${categoryCounts.koerpergewicht})`,
-                        },
-                        {
-                          id: 'dehnung',
-                          label: `Dehnung & Mobility (${categoryCounts.dehnung})`,
-                        },
+                        { id: 'isometrisch', label: `Isometrisch (${categoryCounts.isometrisch})` },
+                        { id: 'geraete', label: `Geräte (${categoryCounts.geraete})` },
+                        { id: 'koerpergewicht', label: `Körpergewicht (${categoryCounts.koerpergewicht})` },
+                        { id: 'dehnung', label: `Dehnung (${categoryCounts.dehnung})` },
                       ] as const
                     ).map((cat) => (
                       <button
                         key={cat.id}
                         type="button"
                         onClick={() => setCategoryFilter(cat.id)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap border transition ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap border transition ${
                           categoryFilter === cat.id
                             ? 'bg-emerald-500 text-slate-950 border-emerald-400'
                             : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
@@ -2572,145 +2279,114 @@ export default function FitPulseApp() {
                   </div>
                 </div>
 
-                {/* Exercise Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Compact Exercise Cards (Tap for Pop-up with 3D Animation & Instructions) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {filteredExercises.map((ex) => {
                     const isCustom = ex.id.startsWith('custom-');
                     return (
                       <div
                         key={ex.id}
-                        className={`rounded-2xl bg-slate-900/85 border p-4 flex flex-col justify-between gap-4 hover:border-slate-700 transition ${
+                        onClick={() => setSelectedDetailExercise(ex)}
+                        className={`rounded-2xl bg-slate-900/90 border p-3.5 flex flex-col justify-between gap-3 cursor-pointer hover:border-emerald-500/50 transition ${
                           isCustom
-                            ? 'border-emerald-500/40 ring-1 ring-emerald-500/20'
+                            ? 'border-emerald-500/40'
                             : 'border-slate-800/90'
                         }`}
                       >
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span
-                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
-                                  CATEGORY_LABELS[ex.category].badge
-                                }`}
-                              >
-                                {CATEGORY_LABELS[ex.category].title}
-                              </span>
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                CATEGORY_LABELS[ex.category].badge
+                              }`}
+                            >
+                              {CATEGORY_LABELS[ex.category].title}
+                            </span>
+                            <div className="flex items-center gap-1.5">
                               {isCustom && (
-                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                                  Eigene Übung
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                                  Eigene
                                 </span>
                               )}
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-slate-400 truncate max-w-[130px]">
+                              <span className="text-[10px] text-slate-400 truncate max-w-[110px]">
                                 {ex.equipment}
                               </span>
                               {isCustom && (
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteCustomExercise(ex.id, ex.name)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteCustomExercise(ex.id, ex.name);
+                                  }}
                                   className="p-1 rounded-lg bg-slate-950 text-slate-400 hover:text-rose-400 border border-slate-800"
-                                  title="Eigene Übung löschen"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-3 h-3" />
                                 </button>
                               )}
                             </div>
                           </div>
 
-                          <ExerciseAnimation
-                            pose={ex.animationPose}
-                            category={ex.category}
-                            size="md"
-                          />
+                          <h3 className="font-bold text-white text-sm sm:text-base leading-snug">
+                            {ex.name}
+                          </h3>
 
-                          <div>
-                            <h3 className="font-bold text-white text-base">
-                              {ex.name}
-                            </h3>
-
-                            {/* Muscle Tags */}
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              {ex.primaryMuscles.map((m) => (
-                                <span
-                                  key={m}
-                                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-950 text-slate-200 border border-slate-800 font-medium"
-                                >
-                                  {m}
-                                </span>
-                              ))}
-                            </div>
-
-                            {/* Goal & Level Tags */}
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              {ex.goals.map((g) => (
-                                <span
-                                  key={g}
-                                  className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 font-semibold"
-                                >
-                                  {GOAL_LABELS[g].title.split(' ')[0]}
-                                </span>
-                              ))}
-                              {ex.levels.map((lvl) => (
-                                <span
-                                  key={lvl}
-                                  className="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/25"
-                                >
-                                  {LEVEL_LABELS[lvl].title}
-                                </span>
-                              ))}
-                            </div>
-
-                            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                              {ex.healthBenefits}
-                            </p>
+                          <div className="flex flex-wrap gap-1">
+                            {ex.primaryMuscles.slice(0, 3).map((m) => (
+                              <span
+                                key={m}
+                                className="text-[10px] px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800"
+                              >
+                                {m}
+                              </span>
+                            ))}
                           </div>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedDetailExercise(ex)}
-                              className="flex-1 px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-800 text-xs font-semibold transition"
-                            >
-                              Technik & Atmung
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                updateSelectedDay((d) => ({
-                                  ...d,
-                                  items: [
-                                    ...d.items,
-                                    {
-                                      exerciseId: ex.id,
-                                      sets: ex.defaultSets,
-                                      targetWeightKg: ex.defaultWeightKg,
-                                      targetReps: ex.defaultReps,
-                                      targetSeconds: ex.defaultSeconds,
-                                      restSeconds: ex.restSeconds,
-                                    },
-                                  ],
-                                }));
-                                triggerToast(
-                                  `"${ex.name}" zum ${selectedDayPlan.dayName} hinzugefügt!`
-                                );
-                              }}
-                              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 text-xs font-bold transition"
-                              title={`Zu ${selectedDayPlan.dayName} hinzufügen`}
-                            >
-                              + {selectedDayPlan.dayShort}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => startExerciseInTracker(ex.id)}
-                              className="flex-1 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-1"
-                            >
-                              <Timer className="w-3.5 h-3.5" />
-                              Tracken
-                            </button>
-                          </div>
+                        <div
+                          className="flex items-center gap-1.5 pt-2 border-t border-slate-800/80"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDetailExercise(ex)}
+                            className="flex-1 px-2.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-sky-300 border border-slate-800 text-xs font-bold flex items-center justify-center gap-1"
+                          >
+                            <Info className="w-3.5 h-3.5" />
+                            <span>Animation & Info</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateSelectedDay((d) => ({
+                                ...d,
+                                items: [
+                                  ...d.items,
+                                  {
+                                    exerciseId: ex.id,
+                                    sets: ex.defaultSets,
+                                    targetWeightKg: ex.defaultWeightKg,
+                                    targetReps: ex.defaultReps,
+                                    targetSeconds: ex.defaultSeconds,
+                                    restSeconds: ex.restSeconds,
+                                  },
+                                ],
+                              }));
+                              triggerToast(
+                                `"${ex.name}" zum ${selectedDayPlan.dayName} hinzugefügt!`
+                              );
+                            }}
+                            className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-bold"
+                          >
+                            + {selectedDayPlan.dayShort}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startExerciseInTracker(ex.id)}
+                            className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-1"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                            <span>Start</span>
+                          </button>
                         </div>
                       </div>
                     );
@@ -2722,207 +2398,411 @@ export default function FitPulseApp() {
         )}
 
         {/* =========================================================
-            SÄULE 2: SMART-TRACKER (KRAFT/ISOMETRIE, AUSDAUER, GEWICHT)
+            SÄULE 2: SMART-TRACKER (CLEAN MIT AUFKLAPPEN & POP-UPS)
            ========================================================= */}
         {activeTab === 'pillar2' && (
-          <div className="space-y-6">
-            {/* Sub-Nav Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/70 border border-slate-800/90 p-4 rounded-2xl">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  Säule 2 · Smart-Logging mit Auto-Prefill & Countdown
-                </span>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-0.5">
-                  Workout-, Cardio- & Gewichts-Tracker
-                </h2>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start sm:self-auto">
+          <div className="space-y-4">
+            {/* Compact Sub-Nav Bar */}
+            <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-2 sm:p-3 flex items-center justify-between gap-2">
+              <div className="grid grid-cols-3 w-full sm:w-auto gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
                 <button
                   type="button"
                   onClick={() => setP2SubTab('strength')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition ${
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs sm:text-sm font-extrabold transition ${
                     p2SubTab === 'strength'
-                      ? 'bg-emerald-500 text-slate-950'
+                      ? 'bg-emerald-500 text-slate-950 shadow-sm'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <Dumbbell className="w-4 h-4" />
-                  Kraft & Isometrie
+                  <Dumbbell className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Kraft & Plan</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setP2SubTab('cardio')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition ${
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs sm:text-sm font-extrabold transition ${
                     p2SubTab === 'cardio'
-                      ? 'bg-emerald-500 text-slate-950'
+                      ? 'bg-emerald-500 text-slate-950 shadow-sm'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <Activity className="w-4 h-4" />
-                  Laufen & Rad
+                  <Activity className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Laufen & Rad</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setP2SubTab('weight')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition ${
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs sm:text-sm font-extrabold transition ${
                     p2SubTab === 'weight'
-                      ? 'bg-emerald-500 text-slate-950'
+                      ? 'bg-emerald-500 text-slate-950 shadow-sm'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <Scale className="w-4 h-4" />
-                  Sonntags-Gewicht
+                  <Scale className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Gewicht & RR</span>
                 </button>
               </div>
             </div>
 
             {/* SUB-TAB 1: STRENGTH, ISOMETRIC & STRETCH TRACKER */}
             {p2SubTab === 'strength' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left Column: Exercise Selector, Animation, Countdown & Form */}
-                <div className="lg:col-span-7 space-y-5">
-                  <div className="rounded-2xl bg-slate-900/85 border border-slate-800 p-5 space-y-5">
-                    {/* Exercise Picker */}
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                        Übung auswählen (Werte vom letzten Mal werden automatisch geladen)
-                      </label>
-                      <select
-                        value={trackedExerciseId}
-                        onChange={(e) => setTrackedExerciseId(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm sm:text-base font-bold text-white focus:outline-none focus:border-emerald-500"
+              <div className="space-y-4">
+                {/* 1. COLLAPSIBLE DAILY PLAN CHECKLIST (Aufklappbar) */}
+                {(() => {
+                  const totalItems = selectedDayPlan.items.length;
+                  const completedCount = selectedDayPlan.items.filter((it, idx) =>
+                    isDayExerciseCompleted(it.exerciseId, idx)
+                  ).length;
+                  const pct =
+                    totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
+
+                  return (
+                    <div className="rounded-2xl bg-slate-900/90 border border-emerald-500/30 overflow-hidden shadow-lg">
+                      {/* Accordion Header */}
+                      <button
+                        type="button"
+                        onClick={() => setShowTrackerPlanAccordion((v) => !v)}
+                        className="w-full p-3.5 sm:p-4 flex items-center justify-between gap-3 text-left"
                       >
-                        {allExercises.map((ex) => (
-                          <option key={ex.id} value={ex.id}>
-                            {ex.name} ({CATEGORY_LABELS[ex.category].title})
-                          </option>
-                        ))}
-                      </select>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">
+                              Heutiger Trainingsplan ({selectedDayPlan.dayName})
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              {completedCount} / {totalItems} erledigt
+                            </span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-slate-950 overflow-hidden border border-slate-800 mt-2">
+                            <div
+                              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="p-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 shrink-0 flex items-center gap-1 text-xs font-bold">
+                          <span className="hidden sm:inline">
+                            {showTrackerPlanAccordion ? 'Zuklappen' : 'Aufklappen'}
+                          </span>
+                          {showTrackerPlanAccordion ? (
+                            <ChevronUp className="w-4 h-4 text-emerald-400" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Collapsible Body: 7-Day Switcher & Checkable Exercises */}
+                      {showTrackerPlanAccordion && (
+                        <div className="px-3.5 pb-4 pt-1 border-t border-slate-800/80 space-y-3">
+                          {/* 7-Day Compact Switcher Pills */}
+                          <div className="grid grid-cols-7 gap-1">
+                            {plan.days.map((d, idx) => {
+                              const isSelected = idx === selectedDayIndex;
+                              const isToday = idx === todayWeekdayIndex;
+                              const doneCount = d.items.filter((it, i) =>
+                                manualCheckedMap[
+                                  `${inputDate}:${idx}:${i}:${it.exerciseId}`
+                                ] !== undefined
+                                  ? manualCheckedMap[
+                                      `${inputDate}:${idx}:${i}:${it.exerciseId}`
+                                    ]
+                                  : strengthLogs.some(
+                                      (l) =>
+                                        l.exerciseId === it.exerciseId &&
+                                        l.performedAt === inputDate
+                                    )
+                              ).length;
+                              const allDone =
+                                d.items.length > 0 && doneCount === d.items.length;
+
+                              return (
+                                <button
+                                  key={d.dayIndex}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedDayIndex(idx);
+                                    const firstOpen = d.items.find(
+                                      (it, i) =>
+                                        !(manualCheckedMap[
+                                          `${inputDate}:${idx}:${i}:${it.exerciseId}`
+                                        ] !== undefined
+                                          ? manualCheckedMap[
+                                              `${inputDate}:${idx}:${i}:${it.exerciseId}`
+                                            ]
+                                          : strengthLogs.some(
+                                              (l) =>
+                                                l.exerciseId === it.exerciseId &&
+                                                l.performedAt === inputDate
+                                            ))
+                                    );
+                                    if (firstOpen) {
+                                      setTrackedExerciseId(firstOpen.exerciseId);
+                                    } else if (d.items[0]) {
+                                      setTrackedExerciseId(d.items[0].exerciseId);
+                                    }
+                                  }}
+                                  className={`py-1.5 px-1 rounded-xl border text-center transition flex flex-col items-center ${
+                                    isSelected
+                                      ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-extrabold shadow-md'
+                                      : allDone
+                                      ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40 font-bold'
+                                      : 'bg-slate-950 text-slate-300 border-slate-800 font-semibold'
+                                  }`}
+                                >
+                                  <span className="text-[11px]">{d.dayShort}</span>
+                                  <span
+                                    className={`text-[9px] ${
+                                      isSelected ? 'text-slate-900' : 'text-slate-400'
+                                    }`}
+                                  >
+                                    {isToday ? 'HEUTE' : `${doneCount}/${d.items.length}`}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Checkable Exercise Items */}
+                          <div className="space-y-1.5 max-h-64 overflow-y-auto pr-0.5">
+                            {selectedDayPlan.items.map((item, idx) => {
+                              const ex = allExercises.find(
+                                (e) => e.id === item.exerciseId
+                              );
+                              if (!ex) return null;
+                              const active = trackedExerciseId === ex.id;
+                              const completed = isDayExerciseCompleted(ex.id, idx);
+
+                              return (
+                                <div
+                                  key={`${ex.id}-${idx}`}
+                                  onClick={() => setTrackedExerciseId(ex.id)}
+                                  className={`p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-2.5 ${
+                                    active
+                                      ? 'bg-emerald-500/15 border-emerald-400'
+                                      : completed
+                                      ? 'bg-slate-950/50 border-emerald-500/25 opacity-75'
+                                      : 'bg-slate-950 border-slate-800'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleChecklistExercise(ex.id, idx);
+                                      }}
+                                      className={`w-6 h-6 rounded-lg flex items-center justify-center border transition shrink-0 ${
+                                        completed
+                                          ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-extrabold'
+                                          : 'bg-slate-900 border-slate-700 text-transparent hover:border-emerald-400'
+                                      }`}
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <div className="min-w-0">
+                                      <div
+                                        className={`text-xs sm:text-sm font-bold truncate ${
+                                          completed
+                                            ? 'line-through text-slate-400'
+                                            : 'text-white'
+                                        }`}
+                                      >
+                                        {idx + 1}. {ex.name}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400">
+                                        {item.sets} ×{' '}
+                                        {ex.isTimed
+                                          ? `${item.targetSeconds}s`
+                                          : `${item.targetReps} Wdh.`}
+                                        {item.targetWeightKg > 0
+                                          ? ` · ${item.targetWeightKg} kg`
+                                          : ''}{' '}
+                                        · {item.restSeconds}s Pause
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold shrink-0 ${
+                                      completed
+                                        ? 'bg-emerald-500/20 text-emerald-300'
+                                        : active
+                                        ? 'bg-emerald-500 text-slate-950'
+                                        : 'bg-slate-900 text-slate-400'
+                                    }`}
+                                  >
+                                    {completed ? '✓' : active ? 'Aktiv' : 'Wählen'}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 2. ACTIVE EXERCISE TRACKER CARD (Clean & Compact) */}
+                <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 space-y-4">
+                  {/* Exercise Selector + Pop-up / Accordion Buttons */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
+                        Aktuelle Übung im Tracker
+                      </label>
+                      {prefillBanner && (
+                        <span className="text-[10px] text-emerald-300 font-semibold truncate max-w-[200px] sm:max-w-none">
+                          ✓ Werte vom letzten Mal geladen
+                        </span>
+                      )}
                     </div>
 
-                    {/* Smart Prefill Notification Banner */}
-                    {prefillBanner && (
-                      <div className="px-3.5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span>{prefillBanner}</span>
+                    <select
+                      value={trackedExerciseId}
+                      onChange={(e) => setTrackedExerciseId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm sm:text-base font-bold text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      {allExercises.map((ex) => (
+                        <option key={ex.id} value={ex.id}>
+                          {ex.name} ({CATEGORY_LABELS[ex.category].title})
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Two Clean Action Buttons: Pop-up Animation/Info + Collapsible Countdown Timer */}
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDetailExercise(currentTrackedExercise)}
+                        className="py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-sky-300 text-xs font-bold flex items-center justify-center gap-1.5 transition"
+                      >
+                        <Info className="w-4 h-4 shrink-0" />
+                        <span className="truncate">3D-Animation & Technik</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowTrackerTimer((v) => !v)}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                          showTrackerTimer
+                            ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
+                            : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-emerald-400'
+                        }`}
+                      >
+                        <Timer className="w-4 h-4 shrink-0" />
+                        <span className="truncate">
+                          {showTrackerTimer
+                            ? 'Timer ausblenden ▲'
+                            : `Timer öffnen (${inputRestSeconds}s) ▼`}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Countdown Timer (Only visible when opened!) */}
+                  {showTrackerTimer && (
+                    <div className="pt-1">
+                      <CountdownTimer
+                        targetSeconds={
+                          currentTrackedExercise.isTimed
+                            ? inputSeconds
+                            : inputRestSeconds
+                        }
+                        restSeconds={inputRestSeconds}
+                        onRestSecondsChange={(newRest) => setInputRestSeconds(newRest)}
+                        totalSets={inputSets}
+                        exerciseName={currentTrackedExercise.name}
+                        onCompleteAllSets={() =>
+                          triggerToast(
+                            `Alle ${inputSets} Sätze ${currentTrackedExercise.name} geschafft!`
+                          )
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {/* Clean 2x2 Input Grid + Collapsible Date/Note */}
+                  <form onSubmit={handleSaveStrengthLog} className="space-y-3.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {/* Weight (kg) */}
+                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-2.5">
+                        <label className="block text-[10px] font-semibold uppercase text-slate-400">
+                          Gewicht (kg)
+                        </label>
+                        <div className="flex items-center justify-between mt-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setInputWeightKg((w) =>
+                                Math.max(0, Number((w - 2.5).toFixed(1)))
+                              )
+                            }
+                            className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            value={inputWeightKg}
+                            onChange={(e) => setInputWeightKg(Number(e.target.value))}
+                            className="w-12 text-center bg-transparent text-sm sm:text-base font-extrabold text-white focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setInputWeightKg((w) => Number((w + 2.5).toFixed(1)))
+                            }
+                            className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
-                    )}
 
-                    {/* Live Animation of Selected Exercise */}
-                    <ExerciseAnimation
-                      pose={currentTrackedExercise.animationPose}
-                      category={currentTrackedExercise.category}
-                      size="md"
-                    />
-
-                    {/* Breathing Coaching Alert */}
-                    <div className="px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
-                      <strong className="text-sky-400">Atem- & Technik-Fokus: </strong>
-                      {currentTrackedExercise.breathingTip}
-                    </div>
-
-                    {/* Integrated Countdown Timer */}
-                    <CountdownTimer
-                      targetSeconds={
-                        currentTrackedExercise.isTimed
-                          ? inputSeconds
-                          : inputRestSeconds
-                      }
-                      restSeconds={inputRestSeconds}
-                      onRestSecondsChange={(newRest) => setInputRestSeconds(newRest)}
-                      totalSets={inputSets}
-                      exerciseName={currentTrackedExercise.name}
-                      onCompleteAllSets={() =>
-                        triggerToast(
-                          `Alle ${inputSets} Sätze ${currentTrackedExercise.name} geschafft! Jetzt unten speichern.`
-                        )
-                      }
-                    />
-
-                    {/* Input Form: kg, sets, seconds, reps, restSeconds */}
-                    <form onSubmit={handleSaveStrengthLog} className="space-y-4 pt-2">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-                        {/* Weight (kg) */}
-                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-2.5">
-                          <label className="block text-[11px] font-semibold text-slate-400">
-                            Gewicht (kg)
-                          </label>
-                          <div className="flex items-center justify-between mt-1.5">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setInputWeightKg((w) => Math.max(0, Number((w - 2.5).toFixed(1))))
-                              }
-                              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              step="0.5"
-                              min="0"
-                              value={inputWeightKg}
-                              onChange={(e) => setInputWeightKg(Number(e.target.value))}
-                              className="w-12 text-center bg-transparent text-sm sm:text-base font-extrabold text-white focus:outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setInputWeightKg((w) => Number((w + 2.5).toFixed(1)))
-                              }
-                              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
-                            >
-                              +
-                            </button>
-                          </div>
+                      {/* Sets */}
+                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-2.5">
+                        <label className="block text-[10px] font-semibold uppercase text-slate-400">
+                          Sätze
+                        </label>
+                        <div className="flex items-center justify-between mt-1">
+                          <button
+                            type="button"
+                            onClick={() => setInputSets((s) => Math.max(1, s - 1))}
+                            className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={inputSets}
+                            onChange={(e) => setInputSets(Number(e.target.value))}
+                            className="w-10 text-center bg-transparent text-sm sm:text-base font-extrabold text-white focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setInputSets((s) => s + 1)}
+                            className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                          >
+                            +
+                          </button>
                         </div>
+                      </div>
 
-                        {/* Sets */}
-                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-2.5">
-                          <label className="block text-[11px] font-semibold text-slate-400">
-                            Sätze
+                      {/* Seconds OR Reps (Smartly shows primary metric + allows adjusting) */}
+                      {currentTrackedExercise.isTimed ? (
+                        <div className="bg-slate-950 border border-violet-500/50 rounded-xl p-2.5">
+                          <label className="block text-[10px] font-semibold uppercase text-violet-300">
+                            Haltedauer (Sek.)
                           </label>
-                          <div className="flex items-center justify-between mt-1.5">
+                          <div className="flex items-center justify-between mt-1">
                             <button
                               type="button"
-                              onClick={() => setInputSets((s) => Math.max(1, s - 1))}
-                              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              min="1"
-                              max="20"
-                              value={inputSets}
-                              onChange={(e) => setInputSets(Number(e.target.value))}
-                              className="w-10 text-center bg-transparent text-sm sm:text-base font-extrabold text-white focus:outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setInputSets((s) => s + 1)}
-                              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Seconds */}
-                        <div
-                          className={`bg-slate-950 border rounded-xl p-2.5 ${
-                            currentTrackedExercise.isTimed
-                              ? 'border-violet-500/50'
-                              : 'border-slate-800'
-                          }`}
-                        >
-                          <label className="block text-[11px] font-semibold text-violet-300">
-                            Sekunden (Dauer)
-                          </label>
-                          <div className="flex items-center justify-between mt-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setInputSeconds((s) => Math.max(0, s - 5))}
+                              onClick={() => setInputSeconds((s) => Math.max(5, s - 5))}
                               className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
                             >
                               -
@@ -2930,7 +2810,7 @@ export default function FitPulseApp() {
                             <input
                               type="number"
                               step="5"
-                              min="0"
+                              min="5"
                               value={inputSeconds}
                               onChange={(e) => setInputSeconds(Number(e.target.value))}
                               className="w-12 text-center bg-transparent text-sm sm:text-base font-extrabold text-violet-200 focus:outline-none"
@@ -2944,19 +2824,12 @@ export default function FitPulseApp() {
                             </button>
                           </div>
                         </div>
-
-                        {/* Reps */}
-                        <div
-                          className={`bg-slate-950 border rounded-xl p-2.5 ${
-                            !currentTrackedExercise.isTimed
-                              ? 'border-emerald-500/50'
-                              : 'border-slate-800'
-                          }`}
-                        >
-                          <label className="block text-[11px] font-semibold text-emerald-300">
+                      ) : (
+                        <div className="bg-slate-950 border border-emerald-500/50 rounded-xl p-2.5">
+                          <label className="block text-[10px] font-semibold uppercase text-emerald-300">
                             Wiederholungen
                           </label>
-                          <div className="flex items-center justify-between mt-1.5">
+                          <div className="flex items-center justify-between mt-1">
                             <button
                               type="button"
                               onClick={() => setInputReps((r) => Math.max(1, r - 1))}
@@ -2980,360 +2853,133 @@ export default function FitPulseApp() {
                             </button>
                           </div>
                         </div>
+                      )}
 
-                        {/* Pause / Rest Seconds */}
-                        <div className="bg-slate-950 border border-amber-500/50 rounded-xl p-2.5 col-span-2 sm:col-span-1">
-                          <label className="block text-[11px] font-semibold text-amber-300">
-                            Pause (Sek.)
-                          </label>
-                          <div className="flex items-center justify-between mt-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setInputRestSeconds((r) => Math.max(5, r - 10))}
-                              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
-                            >
-                              -
-                            </button>
+                      {/* Pause / Rest Seconds */}
+                      <div className="bg-slate-950 border border-amber-500/50 rounded-xl p-2.5">
+                        <label className="block text-[10px] font-semibold uppercase text-amber-300">
+                          Pause (Sek.)
+                        </label>
+                        <div className="flex items-center justify-between mt-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setInputRestSeconds((r) => Math.max(5, r - 10))
+                            }
+                            className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            step="5"
+                            min="5"
+                            value={inputRestSeconds}
+                            onChange={(e) => setInputRestSeconds(Number(e.target.value))}
+                            className="w-12 text-center bg-transparent text-sm sm:text-base font-extrabold text-amber-200 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setInputRestSeconds((r) => r + 10)}
+                            className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Collapsible Date & Optional Note */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowTrackerMeta((v) => !v)}
+                        className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 font-semibold"
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <span>
+                          Datum ({inputDate}) & Notiz anpassen
+                        </span>
+                        {showTrackerMeta ? (
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+
+                      {showTrackerMeta && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">
+                              Datum der Einheit
+                            </label>
                             <input
-                              type="number"
-                              step="5"
-                              min="5"
-                              value={inputRestSeconds}
-                              onChange={(e) => setInputRestSeconds(Number(e.target.value))}
-                              className="w-12 text-center bg-transparent text-sm sm:text-base font-extrabold text-amber-200 focus:outline-none"
+                              type="date"
+                              value={inputDate}
+                              onChange={(e) => setInputDate(e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
                             />
-                            <button
-                              type="button"
-                              onClick={() => setInputRestSeconds((r) => r + 10)}
-                              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
-                            >
-                              +
-                            </button>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">
+                              Notiz (optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={inputNotes}
+                              onChange={(e) => setInputNotes(e.target.value)}
+                              placeholder="z.B. Saubere Haltung"
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                            />
                           </div>
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1">
-                            Datum der Einheit
-                          </label>
-                          <input
-                            type="date"
-                            value={inputDate}
-                            onChange={(e) => setInputDate(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1">
-                            Notiz (optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={inputNotes}
-                            onChange={(e) => setInputNotes(e.target.value)}
-                            placeholder="z.B. Saubere Haltung, ruhige Atmung"
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-slate-600"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle2 className="w-5 h-5" />
-                        Übung abhaken, loggen & nächste Übung laden
-                      </button>
-                    </form>
-                  </div>
-                </div>
-
-                {/* Right Column: Interactive Daily Training Plan Checklist & Recent Strength Logs */}
-                <div className="lg:col-span-5 space-y-5">
-                  <div className="rounded-2xl bg-slate-900/90 border border-emerald-500/30 p-4 sm:p-5 space-y-4 shadow-xl">
-                    {/* Header + Weekday Selector */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5" />
-                          Dein Trainingsplan im Tracker
-                        </span>
-                        <h3 className="text-base sm:text-lg font-extrabold text-white mt-0.5">
-                          {selectedDayPlan.dayName}: {selectedDayPlan.title}
-                        </h3>
-                      </div>
-                      {selectedDayIndex !== todayWeekdayIndex && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedDayIndex(todayWeekdayIndex);
-                            const todayItems = plan.days[todayWeekdayIndex]?.items || [];
-                            if (todayItems.length > 0) {
-                              setTrackedExerciseId(todayItems[0].exerciseId);
-                            }
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/25 shrink-0"
-                        >
-                          Zu Heute springen
-                        </button>
                       )}
                     </div>
 
-                    {/* 7-Day Compact Switcher Pills */}
-                    <div className="grid grid-cols-7 gap-1">
-                      {plan.days.map((d, idx) => {
-                        const isSelected = idx === selectedDayIndex;
-                        const isToday = idx === todayWeekdayIndex;
-                        const doneCount = d.items.filter((it, i) =>
-                          manualCheckedMap[`${inputDate}:${idx}:${i}:${it.exerciseId}`] !==
-                          undefined
-                            ? manualCheckedMap[`${inputDate}:${idx}:${i}:${it.exerciseId}`]
-                            : strengthLogs.some(
-                                (l) =>
-                                  l.exerciseId === it.exerciseId &&
-                                  l.performedAt === inputDate
-                              )
-                        ).length;
-                        const allDone = d.items.length > 0 && doneCount === d.items.length;
+                    <button
+                      type="submit"
+                      className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 className="w-5 h-5" />
+                      Übung abhaken & nächste laden
+                    </button>
+                  </form>
+                </div>
 
-                        return (
-                          <button
-                            key={d.dayIndex}
-                            type="button"
-                            onClick={() => {
-                              setSelectedDayIndex(idx);
-                              const firstOpen = d.items.find(
-                                (it, i) =>
-                                  !(manualCheckedMap[
-                                    `${inputDate}:${idx}:${i}:${it.exerciseId}`
-                                  ] !== undefined
-                                    ? manualCheckedMap[
-                                        `${inputDate}:${idx}:${i}:${it.exerciseId}`
-                                      ]
-                                    : strengthLogs.some(
-                                        (l) =>
-                                          l.exerciseId === it.exerciseId &&
-                                          l.performedAt === inputDate
-                                      ))
-                              );
-                              if (firstOpen) {
-                                setTrackedExerciseId(firstOpen.exerciseId);
-                              } else if (d.items[0]) {
-                                setTrackedExerciseId(d.items[0].exerciseId);
-                              }
-                            }}
-                            className={`py-1.5 px-1 rounded-xl border text-center transition flex flex-col items-center ${
-                              isSelected
-                                ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-extrabold shadow-md'
-                                : allDone
-                                ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40 font-bold'
-                                : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700 font-semibold'
-                            }`}
-                          >
-                            <span className="text-[11px]">{d.dayShort}</span>
-                            <span
-                              className={`text-[9px] mt-0.5 ${
-                                isSelected ? 'text-slate-900' : 'text-slate-400'
-                              }`}
-                            >
-                              {isToday ? 'HEUTE' : `${doneCount}/${d.items.length}`}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Daily Progress Bar */}
-                    {(() => {
-                      const totalItems = selectedDayPlan.items.length;
-                      const completedCount = selectedDayPlan.items.filter((it, idx) =>
-                        isDayExerciseCompleted(it.exerciseId, idx)
-                      ).length;
-                      const pct =
-                        totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
-
-                      return (
-                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-300 font-semibold">
-                              Tages-Fortschritt ({selectedDayPlan.dayName})
-                            </span>
-                            <span className="font-extrabold text-emerald-400">
-                              {completedCount} / {totalItems} Übungen abgehakt ({pct}%)
-                            </span>
-                          </div>
-                          <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
-                            <div
-                              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          {totalItems > 0 && completedCount === totalItems && (
-                            <div className="pt-1 text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-                              Stark! Du hast alle geplanten Übungen für {selectedDayPlan.dayName} erledigt!
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Optional Planned Cardio Block for Endurance Days */}
-                    {selectedDayPlan.dayType === 'ausdauer' && selectedDayPlan.cardioBlock && (
-                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3">
-                        <div className="text-xs">
-                          <div className="font-bold text-amber-300 flex items-center gap-1.5">
-                            {selectedDayPlan.cardioBlock.discipline === 'laufen' ? (
-                              <Footprints className="w-3.5 h-3.5" />
-                            ) : (
-                              <Bike className="w-3.5 h-3.5" />
-                            )}
-                            Geplante Ausdauer-Einheit:{' '}
-                            {selectedDayPlan.cardioBlock.discipline === 'laufen'
-                              ? 'Laufen'
-                              : 'Radfahren'}
-                          </div>
-                          <div className="text-slate-300 mt-0.5">
-                            {selectedDayPlan.cardioBlock.targetDistanceKm} km ·{' '}
-                            {selectedDayPlan.cardioBlock.targetDurationMinutes} Min. (
-                            {selectedDayPlan.cardioBlock.intensityZone})
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            startPlannedCardioInTracker(
-                              selectedDayPlan.cardioBlock!.discipline,
-                              selectedDayPlan.cardioBlock!.targetDistanceKm,
-                              selectedDayPlan.cardioBlock!.targetDurationMinutes,
-                              selectedDayPlan.cardioBlock!.targetElevationMeters || 50,
-                              selectedDayPlan.cardioBlock!.intensityZone
-                            )
-                          }
-                          className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shrink-0 transition"
-                        >
-                          Cardio loggen
-                        </button>
-                      </div>
+                {/* 3. COLLAPSIBLE RECENT LOGS ACCORDION */}
+                <div className="rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowRecentLogsAccordion((v) => !v)}
+                    className="w-full p-3.5 sm:p-4 flex items-center justify-between text-xs sm:text-sm font-bold text-slate-300 hover:text-white"
+                  >
+                    <span>
+                      Zuletzt geloggte Kraft-Einheiten ({strengthLogs.length})
+                    </span>
+                    {showRecentLogsAccordion ? (
+                      <ChevronUp className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
                     )}
-
-                    {/* Step-by-Step Checkable Exercise List */}
-                    <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
-                      {selectedDayPlan.items.map((item, idx) => {
-                        const ex = allExercises.find((e) => e.id === item.exerciseId);
-                        if (!ex) return null;
-                        const active = trackedExerciseId === ex.id;
-                        const completed = isDayExerciseCompleted(ex.id, idx);
-
-                        return (
-                          <div
-                            key={`${ex.id}-${idx}`}
-                            onClick={() => setTrackedExerciseId(ex.id)}
-                            className={`p-3 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${
-                              active
-                                ? 'bg-emerald-500/15 border-emerald-400 shadow-md'
-                                : completed
-                                ? 'bg-slate-950/60 border-emerald-500/30 opacity-80'
-                                : 'bg-slate-950 border-slate-800 hover:border-slate-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              {/* Checkbox button to check/uncheck directly */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleChecklistExercise(ex.id, idx);
-                                }}
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center border transition shrink-0 ${
-                                  completed
-                                    ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-extrabold shadow-sm shadow-emerald-500/30'
-                                    : 'bg-slate-900 border-slate-700 text-transparent hover:border-emerald-400'
-                                }`}
-                                title={
-                                  completed
-                                    ? 'Erledigt – Klicken zum Rückgängigmachen'
-                                    : 'Direkt als erledigt abhaken & nächste Übung wählen'
-                                }
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                              </button>
-
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-[11px] font-extrabold text-slate-400">
-                                    #{idx + 1}
-                                  </span>
-                                  <span
-                                    className={`text-xs sm:text-sm font-bold truncate ${
-                                      completed
-                                        ? 'line-through text-slate-400'
-                                        : 'text-white'
-                                    }`}
-                                  >
-                                    {ex.name}
-                                  </span>
-                                </div>
-                                <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
-                                  <span className="text-slate-300 font-semibold">
-                                    {item.sets} Sätze ×{' '}
-                                    {ex.isTimed
-                                      ? `${item.targetSeconds}s Halten`
-                                      : `${item.targetReps} Wdh.`}
-                                    {item.targetWeightKg > 0
-                                      ? ` · ${item.targetWeightKg} kg`
-                                      : ''}
-                                  </span>
-                                  <span>· {item.restSeconds}s Pause</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="shrink-0 flex items-center gap-1.5">
-                              {completed ? (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                  ✓ Erledigt
-                                </span>
-                              ) : active ? (
-                                <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-emerald-500 text-slate-950">
-                                  ▶ Aktiv
-                                </span>
-                              ) : (
-                                <span className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-900 text-slate-300 border border-slate-800">
-                                  Laden
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Recent Logs List */}
-                  <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 space-y-3">
-                    <h3 className="text-sm font-bold text-white">
-                      Zuletzt geloggte Kraft- & Isometrie-Einheiten
-                    </h3>
-                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                      {strengthLogs.slice(0, 12).map((log) => (
+                  </button>
+                  {showRecentLogsAccordion && (
+                    <div className="px-3.5 pb-4 pt-1 border-t border-slate-800/80 space-y-2 max-h-72 overflow-y-auto">
+                      {strengthLogs.slice(0, 15).map((log) => (
                         <div
                           key={log.id}
                           onClick={() => setTrackedExerciseId(log.exerciseId)}
-                          className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90 flex items-center justify-between gap-2 cursor-pointer hover:border-slate-700 transition"
+                          className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2 cursor-pointer"
                         >
                           <div>
                             <div className="text-xs font-bold text-white">
                               {log.exerciseName}
                             </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">
+                            <div className="text-[11px] text-slate-400">
                               {log.performedAt} ·{' '}
                               <span className="text-emerald-300 font-semibold">
-                                {log.sets} Sätze ×{' '}
+                                {log.sets} ×{' '}
                                 {log.durationSeconds > 0
-                                  ? `${log.durationSeconds} Sek.`
+                                  ? `${log.durationSeconds}s`
                                   : `${log.reps} Wdh.`}
                                 {log.weightKg > 0 ? ` @ ${log.weightKg} kg` : ''}
                               </span>
@@ -3348,58 +2994,57 @@ export default function FitPulseApp() {
                               );
                             }}
                             className="p-1.5 text-slate-500 hover:text-rose-400"
-                            title="Eintrag löschen"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* SUB-TAB 2: CARDIO TRACKER (LAUFEN & RADFAHREN) */}
             {p2SubTab === 'cardio' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-7 rounded-2xl bg-slate-900/85 border border-slate-800 p-5 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-white">
-                      Ausdauer-Einheit eintragen
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-slate-900/85 border border-slate-800 p-4 sm:p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-white">
+                      Ausdauer loggen
                     </h3>
                     <div className="inline-flex rounded-xl bg-slate-950 p-1 border border-slate-800">
                       <button
                         type="button"
                         onClick={() => setCardioDiscipline('laufen')}
-                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                           cardioDiscipline === 'laufen'
                             ? 'bg-sky-400 text-slate-950'
                             : 'text-slate-400 hover:text-white'
                         }`}
                       >
-                        <Footprints className="w-4 h-4" />
+                        <Footprints className="w-3.5 h-3.5" />
                         Laufen
                       </button>
                       <button
                         type="button"
                         onClick={() => setCardioDiscipline('radfahren')}
-                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                           cardioDiscipline === 'radfahren'
                             ? 'bg-amber-400 text-slate-950'
                             : 'text-slate-400 hover:text-white'
                         }`}
                       >
-                        <Bike className="w-4 h-4" />
+                        <Bike className="w-3.5 h-3.5" />
                         Radfahren
                       </button>
                     </div>
                   </div>
 
-                  <form onSubmit={handleSaveCardioLog} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
-                        <label className="block text-xs text-slate-400">
+                  <form onSubmit={handleSaveCardioLog} className="space-y-3.5">
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                        <label className="block text-[10px] uppercase text-slate-400">
                           Distanz (km)
                         </label>
                         <input
@@ -3409,13 +3054,13 @@ export default function FitPulseApp() {
                           required
                           value={cardioDistanceKm}
                           onChange={(e) => setCardioDistanceKm(Number(e.target.value))}
-                          className="w-full bg-transparent text-xl font-extrabold text-white focus:outline-none mt-1"
+                          className="w-full bg-transparent text-lg font-extrabold text-white focus:outline-none mt-1"
                         />
                       </div>
 
-                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
-                        <label className="block text-xs text-slate-400">
-                          Zeit (Minuten)
+                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                        <label className="block text-[10px] uppercase text-slate-400">
+                          Zeit (Min.)
                         </label>
                         <input
                           type="number"
@@ -3424,13 +3069,13 @@ export default function FitPulseApp() {
                           required
                           value={cardioDurationMin}
                           onChange={(e) => setCardioDurationMin(Number(e.target.value))}
-                          className="w-full bg-transparent text-xl font-extrabold text-white focus:outline-none mt-1"
+                          className="w-full bg-transparent text-lg font-extrabold text-white focus:outline-none mt-1"
                         />
                       </div>
 
-                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
-                        <label className="block text-xs text-slate-400">
-                          Höhenmeter (hm, optional)
+                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                        <label className="block text-[10px] uppercase text-slate-400">
+                          Höhenmeter
                         </label>
                         <input
                           type="number"
@@ -3438,54 +3083,40 @@ export default function FitPulseApp() {
                           min="0"
                           value={cardioElevationM}
                           onChange={(e) => setCardioElevationM(Number(e.target.value))}
-                          className="w-full bg-transparent text-xl font-extrabold text-white focus:outline-none mt-1"
+                          className="w-full bg-transparent text-lg font-extrabold text-white focus:outline-none mt-1"
                         />
                       </div>
                     </div>
 
-                    {/* Live Calculated Pace / Speed */}
-                    <div className="px-4 py-3 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between text-xs sm:text-sm">
+                    <div className="px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
                       <span className="text-slate-400">
-                        Automatisch berechnete{' '}
-                        {cardioDiscipline === 'laufen'
-                          ? 'Pace (min/km)'
-                          : 'Durchschnittsgeschwindigkeit'}
-                        :
+                        Berechnete{' '}
+                        {cardioDiscipline === 'laufen' ? 'Pace' : 'Geschwindigkeit'}:
                       </span>
-                      <span className="font-extrabold text-emerald-400 text-base">
+                      <span className="font-extrabold text-emerald-400 text-sm">
                         {liveCardioSpeedInfo}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">
-                          Datum
-                        </label>
-                        <input
-                          type="date"
-                          value={cardioDate}
-                          onChange={(e) => setCardioDate(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">
-                          Strecke / Notiz
-                        </label>
-                        <input
-                          type="text"
-                          value={cardioNotes}
-                          onChange={(e) => setCardioNotes(e.target.value)}
-                          placeholder="z.B. Waldrunde, lockerer Puls"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-slate-600"
-                        />
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <input
+                        type="date"
+                        value={cardioDate}
+                        onChange={(e) => setCardioDate(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                      <input
+                        type="text"
+                        value={cardioNotes}
+                        onChange={(e) => setCardioNotes(e.target.value)}
+                        placeholder="Notiz / Strecke (optional)"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500"
+                      />
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm sm:text-base transition flex items-center justify-center gap-2"
+                      className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition flex items-center justify-center gap-2"
                     >
                       <CheckCircle2 className="w-5 h-5" />
                       {cardioDiscipline === 'laufen'
@@ -3495,88 +3126,79 @@ export default function FitPulseApp() {
                   </form>
                 </div>
 
-                {/* Recent Cardio Logs */}
-                <div className="lg:col-span-5 rounded-2xl bg-slate-900/80 border border-slate-800 p-4 space-y-3">
-                  <h3 className="text-sm font-bold text-white">
-                    Letzte Lauf- & Radeinheiten
-                  </h3>
-                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                    {cardioLogs.map((c) => (
-                      <div
-                        key={c.id}
-                        className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
-                                c.discipline === 'laufen'
-                                  ? 'bg-sky-500/15 text-sky-300'
-                                  : 'bg-amber-500/15 text-amber-300'
-                              }`}
-                            >
-                              {c.discipline === 'laufen' ? 'Laufen' : 'Radfahren'}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {c.performedAt}
-                            </span>
-                          </div>
-                          <div className="text-xs sm:text-sm font-bold text-white mt-1">
-                            {c.distanceKm} km in {c.durationMinutes} Min.{' '}
-                            {c.elevationMeters > 0 && (
-                              <span className="text-slate-400 font-normal">
-                                ({c.elevationMeters} hm)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCardioLogs((prev) =>
-                              prev.filter((item) => item.id !== c.id)
-                            )
-                          }
-                          className="p-1.5 text-slate-500 hover:text-rose-400"
+                {/* Collapsible Cardio Logs */}
+                <div className="rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowRecentLogsAccordion((v) => !v)}
+                    className="w-full p-3.5 flex items-center justify-between text-xs sm:text-sm font-bold text-slate-300"
+                  >
+                    <span>Bisherige Lauf- & Radeinheiten ({cardioLogs.length})</span>
+                    {showRecentLogsAccordion ? (
+                      <ChevronUp className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  {showRecentLogsAccordion && (
+                    <div className="px-3.5 pb-4 pt-1 border-t border-slate-800/80 space-y-2 max-h-72 overflow-y-auto">
+                      {cardioLogs.map((c) => (
+                        <div
+                          key={c.id}
+                          className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                          <div className="text-xs">
+                            <span className="font-bold text-white">
+                              {c.discipline === 'laufen' ? 'Laufen' : 'Radfahren'}:{' '}
+                              {c.distanceKm} km in {c.durationMinutes} Min.
+                            </span>
+                            <div className="text-[11px] text-slate-400">
+                              {c.performedAt}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCardioLogs((prev) =>
+                                prev.filter((item) => item.id !== c.id)
+                              )
+                            }
+                            className="p-1.5 text-slate-500 hover:text-rose-400"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* SUB-TAB 3: SUNDAY WEIGHT & BLOOD PRESSURE TRACKER */}
             {p2SubTab === 'weight' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-7 rounded-2xl bg-slate-900/85 border border-slate-800 p-5 space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <Scale className="w-5 h-5 text-amber-400" />
-                        Sonntags-Gewicht & Ruhe-Blutdruck loggen
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Jeden Sonntag wirst du automatisch erinnert, dein aktuelles Körpergewicht einzutragen.
-                      </p>
-                    </div>
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-slate-900/85 border border-slate-800 p-4 sm:p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      <Scale className="w-5 h-5 text-amber-400" />
+                      Gewicht & Blutdruck
+                    </h3>
                     <button
                       type="button"
                       onClick={enableBrowserSundayNotification}
-                      className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 self-start"
+                      className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1"
                     >
                       <Bell className="w-3.5 h-3.5" />
-                      Sonntags-Push testen / aktivieren
+                      Sonntags-Push
                     </button>
                   </div>
 
-                  <form onSubmit={handleSaveWeightLog} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="bg-slate-950 border border-amber-500/40 rounded-xl p-3.5">
-                        <label className="block text-xs text-amber-300 font-semibold">
-                          Aktuelles Gewicht (kg)
+                  <form onSubmit={handleSaveWeightLog} className="space-y-3.5">
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <div className="bg-slate-950 border border-amber-500/40 rounded-xl p-3">
+                        <label className="block text-[10px] uppercase text-amber-300 font-semibold">
+                          Gewicht (kg)
                         </label>
                         <input
                           type="number"
@@ -3586,13 +3208,13 @@ export default function FitPulseApp() {
                           required
                           value={weightKgInput}
                           onChange={(e) => setWeightKgInput(Number(e.target.value))}
-                          className="w-full bg-transparent text-2xl font-extrabold text-white focus:outline-none mt-1"
+                          className="w-full bg-transparent text-lg font-extrabold text-white focus:outline-none mt-1"
                         />
                       </div>
 
-                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
-                        <label className="block text-xs text-slate-400">
-                          Systolisch (mmHg, opt.)
+                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                        <label className="block text-[10px] uppercase text-slate-400">
+                          Systolisch
                         </label>
                         <input
                           type="number"
@@ -3600,13 +3222,13 @@ export default function FitPulseApp() {
                           max="240"
                           value={systolicInput}
                           onChange={(e) => setSystolicInput(Number(e.target.value))}
-                          className="w-full bg-transparent text-2xl font-extrabold text-rose-300 focus:outline-none mt-1"
+                          className="w-full bg-transparent text-lg font-extrabold text-rose-300 focus:outline-none mt-1"
                         />
                       </div>
 
-                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
-                        <label className="block text-xs text-slate-400">
-                          Diastolisch (mmHg, opt.)
+                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                        <label className="block text-[10px] uppercase text-slate-400">
+                          Diastolisch
                         </label>
                         <input
                           type="number"
@@ -3614,68 +3236,73 @@ export default function FitPulseApp() {
                           max="150"
                           value={diastolicInput}
                           onChange={(e) => setDiastolicInput(Number(e.target.value))}
-                          className="w-full bg-transparent text-2xl font-extrabold text-rose-300 focus:outline-none mt-1"
+                          className="w-full bg-transparent text-lg font-extrabold text-rose-300 focus:outline-none mt-1"
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">
-                        Messdatum
-                      </label>
-                      <input
-                        type="date"
-                        value={weightDate}
-                        onChange={(e) => setWeightDate(e.target.value)}
-                        className="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white"
-                      />
-                    </div>
+                    <input
+                      type="date"
+                      value={weightDate}
+                      onChange={(e) => setWeightDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white"
+                    />
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm sm:text-base transition flex items-center justify-center gap-2"
+                      className="w-full py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm transition flex items-center justify-center gap-2"
                     >
                       <CheckCircle2 className="w-5 h-5" />
-                      Sonntags-Messung speichern
+                      Messung speichern
                     </button>
                   </form>
                 </div>
 
-                <div className="lg:col-span-5 rounded-2xl bg-slate-900/80 border border-slate-800 p-4 space-y-3">
-                  <h3 className="text-sm font-bold text-white">
-                    Bisherige Sonntags-Messungen
-                  </h3>
-                  <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-                    {weightLogs.map((w) => (
-                      <div
-                        key={w.id}
-                        className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between"
-                      >
-                        <div>
-                          <div className="text-sm font-bold text-white">
-                            {w.weightKg} kg
+                {/* Collapsible Weight Logs */}
+                <div className="rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowRecentLogsAccordion((v) => !v)}
+                    className="w-full p-3.5 flex items-center justify-between text-xs sm:text-sm font-bold text-slate-300"
+                  >
+                    <span>Bisherige Messungen ({weightLogs.length})</span>
+                    {showRecentLogsAccordion ? (
+                      <ChevronUp className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  {showRecentLogsAccordion && (
+                    <div className="px-3.5 pb-4 pt-1 border-t border-slate-800/80 space-y-2 max-h-72 overflow-y-auto">
+                      {weightLogs.map((w) => (
+                        <div
+                          key={w.id}
+                          className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between"
+                        >
+                          <div className="text-xs">
+                            <span className="font-bold text-white">{w.weightKg} kg</span>
                             {w.systolicBp && (
-                              <span className="ml-2 text-xs text-rose-300 font-semibold">
-                                · RR {w.systolicBp}/{w.diastolicBp} mmHg
+                              <span className="ml-2 text-rose-300 font-semibold">
+                                · RR {w.systolicBp}/{w.diastolicBp}
                               </span>
                             )}
+                            <div className="text-[11px] text-slate-400">{w.measuredAt}</div>
                           </div>
-                          <div className="text-xs text-slate-400">{w.measuredAt}</div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setWeightLogs((prev) =>
+                                prev.filter((item) => item.id !== w.id)
+                              )
+                            }
+                            className="p-1.5 text-slate-500 hover:text-rose-400"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setWeightLogs((prev) =>
-                              prev.filter((item) => item.id !== w.id)
-                            )
-                          }
-                          className="p-1.5 text-slate-500 hover:text-rose-400"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -3683,147 +3310,193 @@ export default function FitPulseApp() {
         )}
 
         {/* =========================================================
-            SÄULE 3: INTERAKTIVES STATISTIK-DASHBOARD (LINE CHARTS)
+            SÄULE 3: INTERAKTIVES STATISTIK-DASHBOARD (CLEAN MIT AUFKLAPP-FILTER)
            ========================================================= */}
         {activeTab === 'pillar3' && (
-          <div className="space-y-6">
-            {/* Top Controls: Domain Selection & X-Axis Time Window */}
-            <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 space-y-5">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                    Säule 3 · Interaktive Fortschritts-Analyse
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-0.5">
-                    Statistik-Dashboard & Dynamische Line-Charts
-                  </h2>
-                </div>
-
-                {/* X-Axis Time Selector */}
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                    X-Achse (Zeitraum flexibel anpassen)
-                  </label>
-                  <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
-                    {(
-                      [
-                        { id: '7d', label: '7 Tage' },
-                        { id: '30d', label: '30 Tage' },
-                        { id: '90d', label: '3 Monate' },
-                        { id: '365d', label: '1 Jahr' },
-                        { id: 'all', label: 'Gesamt' },
-                        { id: 'custom', label: 'Eigener Zeitraum' },
-                      ] as const
-                    ).map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => setTimeRange(preset.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                          timeRange === preset.id
-                            ? 'bg-emerald-500 text-slate-950'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+          <div className="space-y-4">
+            {/* Compact Top Bar: Domain Switcher + Primary Selection + Filter Accordion Trigger */}
+            <div className="rounded-2xl bg-slate-900/85 border border-slate-800 p-3.5 sm:p-4 space-y-3">
+              {/* 3 Domain Pills */}
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setDashboardDomain('kraft')}
+                  className={`py-2 px-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1 ${
+                    dashboardDomain === 'kraft'
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Dumbbell className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Kraft</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDashboardDomain('ausdauer')}
+                  className={`py-2 px-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1 ${
+                    dashboardDomain === 'ausdauer'
+                      ? 'bg-sky-400 text-slate-950'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Activity className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Ausdauer</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDashboardDomain('gewicht')}
+                  className={`py-2 px-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1 ${
+                    dashboardDomain === 'gewicht'
+                      ? 'bg-amber-400 text-slate-950'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Scale className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Gewicht & RR</span>
+                </button>
               </div>
 
-              {/* Custom Date Range Picker when timeRange === 'custom' */}
-              {timeRange === 'custom' && (
-                <div className="flex flex-wrap items-center gap-3 p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-400">Von:</label>
-                    <input
-                      type="date"
-                      value={customStartDate}
-                      onChange={(e) => setCustomStartDate(e.target.value)}
-                      className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-400">Bis:</label>
-                    <input
-                      type="date"
-                      value={customEndDate}
-                      onChange={(e) => setCustomEndDate(e.target.value)}
-                      className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Discipline / Exercise Selector Bar */}
-              <div className="pt-3 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <div className="md:col-span-5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    1. Bereich wählen
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDashboardDomain('kraft')}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                        dashboardDomain === 'kraft'
-                          ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Dumbbell className="w-4 h-4" />
-                      Kraft / Isometrie
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDashboardDomain('ausdauer')}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                        dashboardDomain === 'ausdauer'
-                          ? 'bg-sky-500/20 border-sky-400 text-sky-200'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Activity className="w-4 h-4" />
-                      Ausdauer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDashboardDomain('gewicht')}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                        dashboardDomain === 'gewicht'
-                          ? 'bg-amber-500/20 border-amber-400 text-amber-200'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Scale className="w-4 h-4" />
-                      Gewicht & Blutdruck
-                    </button>
-                  </div>
-                </div>
-
+              {/* Primary Target Selector + Expandable Axis Settings Button */}
+              <div className="flex flex-col sm:flex-row gap-2">
                 {dashboardDomain === 'kraft' && (
-                  <>
-                    <div className="md:col-span-4">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                        2. Kraft- / Isometrie-Übung auswählen
-                      </label>
-                      <select
-                        value={chartExerciseId}
-                        onChange={(e) => setChartExerciseId(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-white"
-                      >
-                        {allExercises.map((ex) => (
-                          <option key={ex.id} value={ex.id}>
-                            {ex.name}
-                          </option>
-                        ))}
-                      </select>
+                  <select
+                    value={chartExerciseId}
+                    onChange={(e) => setChartExerciseId(e.target.value)}
+                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-white"
+                  >
+                    {allExercises.map((ex) => (
+                      <option key={ex.id} value={ex.id}>
+                        {ex.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {dashboardDomain === 'ausdauer' && (
+                  <div className="grid grid-cols-2 gap-1.5 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => setChartCardioDiscipline('laufen')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                        chartCardioDiscipline === 'laufen'
+                          ? 'bg-sky-500/20 text-sky-300 border-sky-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      Laufen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartCardioDiscipline('radfahren')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                        chartCardioDiscipline === 'radfahren'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      Radfahren
+                    </button>
+                  </div>
+                )}
+
+                {dashboardDomain === 'gewicht' && (
+                  <div className="grid grid-cols-2 gap-1.5 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => setChartWeightMetric('weight')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                        chartWeightMetric === 'weight'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      Körpergewicht (kg)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartWeightMetric('bp')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                        chartWeightMetric === 'bp'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      Blutdruck (mmHg)
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowStatsFilterAccordion((v) => !v)}
+                  className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Zeitraum & Achsen</span>
+                  {showStatsFilterAccordion ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+
+              {/* Collapsible Time Window & Metric Settings */}
+              {showStatsFilterAccordion && (
+                <div className="pt-3 border-t border-slate-800/80 space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1.5">
+                      Zeitraum (X-Achse)
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(
+                        [
+                          { id: '7d', label: '7 Tage' },
+                          { id: '30d', label: '30 Tage' },
+                          { id: '90d', label: '3 Monate' },
+                          { id: '365d', label: '1 Jahr' },
+                          { id: 'all', label: 'Gesamt' },
+                          { id: 'custom', label: 'Eigener Zeitraum' },
+                        ] as const
+                      ).map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setTimeRange(preset.id)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition ${
+                            timeRange === preset.id
+                              ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                              : 'bg-slate-950 text-slate-400 border-slate-800'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
                     </div>
-                    <div className="md:col-span-3">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                        3. Y-Achsen-Metrik
+                  </div>
+
+                  {timeRange === 'custom' && (
+                    <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                      <input
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white"
+                      />
+                      <span className="text-xs text-slate-400">bis</span>
+                      <input
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white"
+                      />
+                    </div>
+                  )}
+
+                  {dashboardDomain === 'kraft' && (
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                        Y-Achsen-Metrik
                       </label>
                       <select
                         value={chartStrengthMetric}
@@ -3832,7 +3505,7 @@ export default function FitPulseApp() {
                             e.target.value as 'auto' | 'seconds' | 'weight' | 'volume'
                           )
                         }
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-white"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                       >
                         <option value="auto">Automatisch (Sek. / kg)</option>
                         <option value="seconds">Haltedauer (Sekunden)</option>
@@ -3840,45 +3513,12 @@ export default function FitPulseApp() {
                         <option value="volume">Gesamtvolumen</option>
                       </select>
                     </div>
-                  </>
-                )}
+                  )}
 
-                {dashboardDomain === 'ausdauer' && (
-                  <>
-                    <div className="md:col-span-4">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                        2. Ausdauer-Disziplin wählen
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setChartCardioDiscipline('laufen')}
-                          className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                            chartCardioDiscipline === 'laufen'
-                              ? 'bg-sky-400 text-slate-950 border-sky-300'
-                              : 'bg-slate-950 border-slate-800 text-slate-300'
-                          }`}
-                        >
-                          <Footprints className="w-4 h-4" />
-                          Laufen
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setChartCardioDiscipline('radfahren')}
-                          className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                            chartCardioDiscipline === 'radfahren'
-                              ? 'bg-amber-400 text-slate-950 border-amber-300'
-                              : 'bg-slate-950 border-slate-800 text-slate-300'
-                          }`}
-                        >
-                          <Bike className="w-4 h-4" />
-                          Radfahren
-                        </button>
-                      </div>
-                    </div>
-                    <div className="md:col-span-3">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                        3. Y-Achsen-Metrik
+                  {dashboardDomain === 'ausdauer' && (
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                        Y-Achsen-Metrik
                       </label>
                       <select
                         value={chartCardioMetric}
@@ -3891,7 +3531,7 @@ export default function FitPulseApp() {
                               | 'elevation'
                           )
                         }
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-white"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                       >
                         <option value="distance">Distanz (km)</option>
                         <option value="pace_speed">
@@ -3903,41 +3543,9 @@ export default function FitPulseApp() {
                         <option value="elevation">Höhenmeter (hm)</option>
                       </select>
                     </div>
-                  </>
-                )}
-
-                {dashboardDomain === 'gewicht' && (
-                  <div className="md:col-span-7">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                      2. Gesundheits-Metrik wählen
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setChartWeightMetric('weight')}
-                        className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
-                          chartWeightMetric === 'weight'
-                            ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                            : 'bg-slate-950 border-slate-800 text-slate-300'
-                        }`}
-                      >
-                        Körpergewicht (kg)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setChartWeightMetric('bp')}
-                        className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
-                          chartWeightMetric === 'bp'
-                            ? 'bg-rose-500 text-white border-rose-400'
-                            : 'bg-slate-950 border-slate-800 text-slate-300'
-                        }`}
-                      >
-                        Systolischer Blutdruck (mmHg)
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Interactive SVG Line Chart */}
@@ -3949,44 +3557,315 @@ export default function FitPulseApp() {
               data={activeChartConfig.data}
               lowerIsBetter={activeChartConfig.lowerIsBetter}
             />
-
-            {/* Quick Exercise Chips for fast switching in Strength Chart mode */}
-            {dashboardDomain === 'kraft' && (
-              <div className="rounded-2xl bg-slate-900/70 border border-slate-800 p-4">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-                  Schnellwechsel zwischen Übungen ({allExercises.length} verfügbar)
-                </div>
-                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
-                  {allExercises.map((ex) => {
-                    const count = strengthLogs.filter(
-                      (l) => l.exerciseId === ex.id
-                    ).length;
-                    return (
-                      <button
-                        key={ex.id}
-                        type="button"
-                        onClick={() => setChartExerciseId(ex.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
-                          chartExerciseId === ex.id
-                            ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                            : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
-                        }`}
-                      >
-                        <span>{ex.name.split(' (')[0]}</span>
-                        {count > 0 && (
-                          <span className="px-1.5 py-0.2 rounded-full bg-slate-800/80 text-[10px] text-emerald-300">
-                            {count}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </main>
+
+      {/* =========================================================
+          POP-UP MODAL A: PLAN-GENERATOR (ZIEL & LEVEL ANPASSEN)
+         ========================================================= */}
+      {showPlanGeneratorModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowPlanGeneratorModal(false)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-emerald-400" />
+                Wochenplan nach Ziel & Level anpassen
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPlanGeneratorModal(false)}
+                className="px-2.5 py-1 rounded-lg bg-slate-800 text-xs font-bold text-slate-300"
+              >
+                Fertig
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase text-slate-400">
+                1. Hauptziel wählen
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {(Object.keys(GOAL_LABELS) as TrainingGoal[]).map((g) => {
+                  const info = GOAL_LABELS[g];
+                  const isSelected = plan.goal === g;
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() =>
+                        setPlan(generatePlanForGoalAndLevel(g, plan.level))
+                      }
+                      className={`text-left p-3 rounded-xl border transition ${
+                        isSelected
+                          ? 'bg-emerald-500/15 border-emerald-400'
+                          : 'bg-slate-950 border-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs sm:text-sm text-white">
+                          {info.title}
+                        </span>
+                        {isSelected && (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {info.subtitle}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase text-slate-400">
+                2. Erfahrungs-Level wählen
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(Object.keys(LEVEL_LABELS) as FitnessLevel[]).map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() =>
+                      setPlan(generatePlanForGoalAndLevel(plan.goal, lvl))
+                    }
+                    className={`py-2.5 rounded-xl text-xs font-extrabold border transition ${
+                      plan.level === lvl
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                        : 'bg-slate-950 text-slate-300 border-slate-800'
+                    }`}
+                  >
+                    {LEVEL_LABELS[lvl].title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer text-xs text-slate-200">
+              <input
+                type="checkbox"
+                checked={plan.autoProgression}
+                onChange={(e) =>
+                  setPlan({ ...plan, autoProgression: e.target.checked })
+                }
+                className="rounded accent-emerald-500 w-4 h-4"
+              />
+              <span>Automatische Fortschritts-Steigerung aktiv</span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          POP-UP MODAL B: TAG ANPASSEN & ÜBUNG ZUM WOCHENTAG ERGÄNZEN
+         ========================================================= */}
+      {showDaySettingsModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowDaySettingsModal(false)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-extrabold text-white">
+                {selectedDayPlan.dayName} anpassen
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowDaySettingsModal(false)}
+                className="px-2.5 py-1 rounded-lg bg-slate-800 text-xs font-bold text-slate-300"
+              >
+                Fertig
+              </button>
+            </div>
+
+            {/* Add Exercise to Selected Day */}
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+              <label className="block text-xs font-bold text-emerald-400 uppercase">
+                Übung zum {selectedDayPlan.dayName} hinzufügen
+              </label>
+              <select
+                value={addExerciseIdToPlan}
+                onChange={(e) => setAddExerciseIdToPlan(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-white"
+              >
+                {allExercises.map((ex) => (
+                  <option key={ex.id} value={ex.id}>
+                    [{CATEGORY_LABELS[ex.category].title.split(' ')[0]}] {ex.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  const ex = allExercises.find((e) => e.id === addExerciseIdToPlan);
+                  if (!ex) return;
+                  updateSelectedDay((d) => ({
+                    ...d,
+                    items: [
+                      ...d.items,
+                      {
+                        exerciseId: ex.id,
+                        sets: ex.defaultSets,
+                        targetWeightKg: ex.defaultWeightKg,
+                        targetReps: ex.defaultReps,
+                        targetSeconds: ex.defaultSeconds,
+                        restSeconds: ex.restSeconds,
+                      },
+                    ],
+                  }));
+                  triggerToast(`"${ex.name}" am ${selectedDayPlan.dayName} ergänzt!`);
+                  setShowDaySettingsModal(false);
+                }}
+                className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                Jetzt zum {selectedDayPlan.dayName} hinzufügen
+              </button>
+            </div>
+
+            {/* Day Title & Day Type */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">
+                  Tages-Schwerpunkt / Titel
+                </label>
+                <input
+                  type="text"
+                  value={selectedDayPlan.title}
+                  onChange={(e) =>
+                    updateSelectedDay((d) => ({ ...d, title: e.target.value }))
+                  }
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">
+                  Tagestyp (z.B. Ausdauertag)
+                </label>
+                <select
+                  value={selectedDayPlan.dayType}
+                  onChange={(e) => {
+                    const newType = e.target.value as DayPlanType;
+                    updateSelectedDay((d) => ({
+                      ...d,
+                      dayType: newType,
+                      cardioBlock:
+                        newType === 'ausdauer' && !d.cardioBlock
+                          ? {
+                              discipline: 'laufen',
+                              targetDistanceKm: 6.0,
+                              targetDurationMinutes: 35,
+                              targetElevationMeters: 50,
+                              intensityZone: 'Zone 2 (Grundlagenausdauer)',
+                              coachingNote:
+                                'Lockeres Tempo, anschließend 5 Min. Dehnen.',
+                            }
+                          : newType !== 'ausdauer'
+                          ? undefined
+                          : d.cardioBlock,
+                    }));
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white"
+                >
+                  <option value="kraft">Kraft & Muskel-Tag</option>
+                  <option value="isometrie">Isometrie & Gefäß-Tag</option>
+                  <option value="ausdauer">Ausdauer-Tag (Laufen / Radfahren)</option>
+                  <option value="mobility">Mobility & Dehn-Tag</option>
+                  <option value="ruhetag">Regeneration & Ruhetag</option>
+                </select>
+              </div>
+
+              {selectedDayPlan.cardioBlock && (
+                <div className="p-3 rounded-xl bg-slate-950 border border-sky-500/30 grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] uppercase text-slate-400">
+                      Disziplin
+                    </label>
+                    <select
+                      value={selectedDayPlan.cardioBlock.discipline}
+                      onChange={(e) =>
+                        updateSelectedDay((d) => ({
+                          ...d,
+                          cardioBlock: d.cardioBlock
+                            ? {
+                                ...d.cardioBlock,
+                                discipline: e.target.value as 'laufen' | 'radfahren',
+                              }
+                            : undefined,
+                        }))
+                      }
+                      className="w-full bg-transparent text-xs font-bold text-white mt-1"
+                    >
+                      <option value="laufen" className="bg-slate-900">
+                        Laufen
+                      </option>
+                      <option value="radfahren" className="bg-slate-900">
+                        Radfahren
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase text-slate-400">
+                      Distanz (km)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={selectedDayPlan.cardioBlock.targetDistanceKm}
+                      onChange={(e) =>
+                        updateSelectedDay((d) => ({
+                          ...d,
+                          cardioBlock: d.cardioBlock
+                            ? {
+                                ...d.cardioBlock,
+                                targetDistanceKm: Number(e.target.value) || 5,
+                              }
+                            : undefined,
+                        }))
+                      }
+                      className="w-full bg-transparent text-xs font-bold text-sky-300 mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase text-slate-400">
+                      Dauer (Min.)
+                    </label>
+                    <input
+                      type="number"
+                      step="5"
+                      value={selectedDayPlan.cardioBlock.targetDurationMinutes}
+                      onChange={(e) =>
+                        updateSelectedDay((d) => ({
+                          ...d,
+                          cardioBlock: d.cardioBlock
+                            ? {
+                                ...d.cardioBlock,
+                                targetDurationMinutes: Number(e.target.value) || 30,
+                              }
+                            : undefined,
+                        }))
+                      }
+                      className="w-full bg-transparent text-xs font-bold text-white mt-1"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#090d16]/95 backdrop-blur-xl border-t border-slate-800 px-2 py-2 flex items-center justify-around">
