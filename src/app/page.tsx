@@ -1629,11 +1629,19 @@ export default function FitPulseApp() {
               )}
             </div>
 
-            <div className="text-center pt-1">
+            <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
+              <a
+                href="/FitPulse.apk"
+                download="FitPulse.apk"
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 transition"
+              >
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <span>Android APK herunterladen (Auto-Update via Vercel)</span>
+              </a>
               <button
                 type="button"
                 onClick={() => setGuestMode(true)}
-                className="text-[11px] text-slate-500 hover:text-slate-300 transition"
+                className="text-[11px] text-slate-500 hover:text-slate-300 transition py-1"
               >
                 Ohne Anmeldung im Gast-Modus testen
               </button>
@@ -4187,14 +4195,22 @@ export default function FitPulseApp() {
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs text-slate-400">
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs text-slate-400">
               <div className="font-bold text-slate-200 flex items-center gap-1.5">
                 <Smartphone className="w-4 h-4 text-emerald-400" />
-                Status: {isSupabaseConfigured ? 'Supabase Cloud aktiv verbunden' : 'Lokaler Modus'}
+                Android APK (automatisches Live-Update via Vercel)
               </div>
               <p>
-                Alle Änderungen am Trainingsplan und alle geloggten Einheiten werden automatisch mit deinem Account synchronisiert.
+                Einmal auf dem Handy installieren – jedes neue Vercel-Update ist sofort beim nächsten Öffnen der App aktiv, ohne die APK neu installieren zu müssen.
               </p>
+              <a
+                href="/FitPulse.apk"
+                download="FitPulse.apk"
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 transition"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>FitPulse.apk jetzt herunterladen</span>
+              </a>
             </div>
           </div>
         </div>

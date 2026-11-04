@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">FitPulse Sport &amp; Gesundheit</string>
-    <string name="title_activity_main">FitPulse Sport &amp; Gesundheit</string>
+    <string name="app_name">FitPulse</string>
+    <string name="title_activity_main">FitPulse</string>
     <string name="package_name">de.fitpulse.sportapp</string>
     <string name="custom_url_scheme">de.fitpulse.sportapp</string>
 </resources>
