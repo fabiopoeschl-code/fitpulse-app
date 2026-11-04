@@ -33,7 +33,18 @@ export type AnimationPose =
   | 'childs_pose'
   | 'hamstring_stretch'
   | 'cat_cow'
-  | 'chest_opener';
+  | 'chest_opener'
+  | 'chest_press'
+  | 'machine_shoulder_press'
+  | 'leg_curl'
+  | 'leg_extension'
+  | 'back_extension'
+  | 'cable_crunch'
+  | 'worlds_greatest_stretch'
+  | 'calf_wall_stretch'
+  | 'quad_stretch'
+  | 'neck_stretch'
+  | 'toe_touch';
 
 export interface ExerciseDefinition {
   id: string;
@@ -699,7 +710,7 @@ export const EXERCISES: ExerciseDefinition[] = [
   },
   {
     id: 'eq-leg-press',
-    name: 'Beinpresse (45° / Horizontal Leg Press)',
+    name: 'Beinpresse',
     category: 'geraete',
     equipment: 'Beinpresse-Maschine',
     isTimed: false,
@@ -710,7 +721,7 @@ export const EXERCISES: ExerciseDefinition[] = [
     restSeconds: 90,
     goals: ['muskelaufbau', 'fit_im_alter', 'blutdruck'],
     levels: ['anfaenger', 'fortgeschritten', 'profi'],
-    primaryMuscles: ['Quadrizeps', 'Gesäß', 'Beinbizeps'],
+    primaryMuscles: ['Beine (Quadrizeps)', 'Po (Gesäß)', 'Beinbizeps'],
     healthBenefits:
       'Ermöglicht sicheres Beinkrafttraining mit geführter Rückenlehne ohne Belastung der Wirbelsäule.',
     instructions: [
@@ -753,7 +764,7 @@ export const EXERCISES: ExerciseDefinition[] = [
   },
   {
     id: 'eq-lat-pulldown',
-    name: 'Breites Latziehen zur Brust',
+    name: 'Latzug zur Brust',
     category: 'geraete',
     equipment: 'Latzug-Maschine',
     isTimed: false,
@@ -764,7 +775,7 @@ export const EXERCISES: ExerciseDefinition[] = [
     restSeconds: 75,
     goals: ['muskelaufbau', 'fit_im_alter', 'blutdruck'],
     levels: ['anfaenger', 'fortgeschritten', 'profi'],
-    primaryMuscles: ['Breiter Rückenmuskel (Latissimus)', 'Unterer Trapez', 'Bizeps'],
+    primaryMuscles: ['Rücken (Latissimus)', 'Unterer Trapez', 'Bizeps'],
     healthBenefits:
       'Richtet die Brustwirbelsäule auf, zieht nach vorn fallende Schultern zurück und stärkt den gesamten oberen Rücken.',
     instructions: [
@@ -780,9 +791,9 @@ export const EXERCISES: ExerciseDefinition[] = [
   },
   {
     id: 'eq-seated-cable-row',
-    name: 'Sitzendes Rudern am Kabelzug (Seated Row)',
+    name: 'Rudern sitzend am Gerät oder Kabel',
     category: 'geraete',
-    equipment: 'Kabelzug / Rudermaschine',
+    equipment: 'Rudermaschine oder Kabelzug',
     isTimed: false,
     defaultWeightKg: 50,
     defaultSets: 3,
@@ -791,7 +802,7 @@ export const EXERCISES: ExerciseDefinition[] = [
     restSeconds: 75,
     goals: ['muskelaufbau', 'fit_im_alter', 'blutdruck', 'ausdauer'],
     levels: ['anfaenger', 'fortgeschritten', 'profi'],
-    primaryMuscles: ['Rhomboiden', 'Mittlerer Trapez', 'Latissimus', 'Hintere Schulter'],
+    primaryMuscles: ['Rücken (Rhomboiden & Latissimus)', 'Haltung (Mittlerer Trapez)', 'Hintere Schulter'],
     healthBenefits:
       'Perfekte Haltungsübung gegen Schreibtischarbeit – stabilisiert die Schulterblätter und entlastet den Nacken.',
     instructions: [
@@ -932,14 +943,14 @@ export const EXERCISES: ExerciseDefinition[] = [
       'Langsam über 3 Sekunden wieder absenken.',
     ],
     breathingTip: 'Beim Strecken ausatmen, beim Absenken einatmen.',
-    animationPose: 'leg_press',
+    animationPose: 'leg_extension',
     progressionStepKg: 2.5,
     progressionStepSeconds: 0,
     progressionStepReps: 1,
   },
   {
     id: 'eq-leg-curl',
-    name: 'Beinbeuger an der Maschine (Seated / Lying Leg Curl)',
+    name: 'Beinbeuger',
     category: 'geraete',
     equipment: 'Beinbeuger-Maschine',
     isTimed: false,
@@ -950,7 +961,7 @@ export const EXERCISES: ExerciseDefinition[] = [
     restSeconds: 60,
     goals: ['muskelaufbau', 'ausdauer', 'fit_im_alter'],
     levels: ['anfaenger', 'fortgeschritten', 'profi'],
-    primaryMuscles: ['Beinbizeps (Hamstrings)', 'Wadenansatz'],
+    primaryMuscles: ['Hintere Oberschenkel (Hamstrings)', 'Wadenansatz'],
     healthBenefits:
       'Schützt das vordere Kreuzband (ACL) und beugt Zerrungen der Oberschenkelrückseite beim Sprinten und Laufen vor.',
     instructions: [
@@ -959,7 +970,7 @@ export const EXERCISES: ExerciseDefinition[] = [
       'Ohne Schwung langsam wieder in die Streckung führen.',
     ],
     breathingTip: 'Beim Beugen ausatmen.',
-    animationPose: 'leg_press',
+    animationPose: 'leg_curl',
     progressionStepKg: 2.5,
     progressionStepSeconds: 0,
     progressionStepReps: 1,
@@ -1042,6 +1053,119 @@ export const EXERCISES: ExerciseDefinition[] = [
     progressionStepKg: 2.5,
     progressionStepSeconds: 10,
     progressionStepReps: 0,
+  },
+
+  {
+    id: 'eq-chest-press',
+    name: 'Brustpresse',
+    category: 'geraete',
+    equipment: 'Brustpresse-Maschine',
+    isTimed: false,
+    defaultWeightKg: 40,
+    defaultSets: 3,
+    defaultReps: 12,
+    defaultSeconds: 0,
+    restSeconds: 75,
+    goals: ['muskelaufbau', 'fit_im_alter', 'blutdruck'],
+    levels: ['anfaenger', 'fortgeschritten', 'profi'],
+    primaryMuscles: ['Brust', 'Schultern', 'Trizeps'],
+    healthBenefits:
+      'Geführte Druckbewegung für Brust, vordere Schulter und Trizeps – ideal für Einsteiger und schulterschonend, da die Maschine die Bahn vorgibt.',
+    instructions: [
+      'Sitzhöhe so einstellen, dass die Griffe auf Höhe der mittleren Brust liegen.',
+      'Rücken fest an das Polster, Schulterblätter leicht zusammen und nach unten ziehen.',
+      'Griffe kontrolliert nach vorn drücken, ohne die Ellbogen ganz durchzustrecken.',
+      'Langsam (ca. 2–3 Sek.) zurückführen, bis eine leichte Dehnung in der Brust spürbar ist.',
+    ],
+    breathingTip: 'Beim Wegdrücken ausatmen, beim Zurückführen einatmen – keine Pressatmung.',
+    animationPose: 'chest_press',
+    progressionStepKg: 2.5,
+    progressionStepSeconds: 0,
+    progressionStepReps: 1,
+  },
+  {
+    id: 'eq-machine-shoulder-press',
+    name: 'Schulterpresse',
+    category: 'geraete',
+    equipment: 'Schulterpresse-Maschine',
+    isTimed: false,
+    defaultWeightKg: 25,
+    defaultSets: 3,
+    defaultReps: 12,
+    defaultSeconds: 0,
+    restSeconds: 75,
+    goals: ['muskelaufbau', 'fit_im_alter'],
+    levels: ['anfaenger', 'fortgeschritten', 'profi'],
+    primaryMuscles: ['Schultern (Deltamuskel)', 'Trizeps'],
+    healthBenefits:
+      'Kräftigt die Schultern in einer geführten Überkopfbewegung – stabil, rückenfreundlich und gut dosierbar.',
+    instructions: [
+      'Sitz so einstellen, dass die Griffe etwa auf Schulterhöhe starten.',
+      'Rücken und Hinterkopf am Polster, Bauch leicht anspannen (kein Hohlkreuz).',
+      'Griffe kontrolliert nach oben drücken, Ellbogen oben nicht ganz durchstrecken.',
+      'Langsam wieder bis auf Schulterhöhe absenken.',
+    ],
+    breathingTip: 'Beim Hochdrücken ausatmen, beim Absenken einatmen.',
+    animationPose: 'machine_shoulder_press',
+    progressionStepKg: 2.5,
+    progressionStepSeconds: 0,
+    progressionStepReps: 1,
+  },
+  {
+    id: 'eq-back-extension',
+    name: 'Rückenstrecker am Gerät',
+    category: 'geraete',
+    equipment: 'Rückenstrecker-Maschine / 45°-Bank',
+    isTimed: false,
+    defaultWeightKg: 0,
+    defaultSets: 3,
+    defaultReps: 15,
+    defaultSeconds: 0,
+    restSeconds: 60,
+    goals: ['fit_im_alter', 'muskelaufbau', 'blutdruck'],
+    levels: ['anfaenger', 'fortgeschritten', 'profi'],
+    primaryMuscles: ['Unterer Rücken (Rückenstrecker)', 'Gesäß', 'Hintere Oberschenkel'],
+    healthBenefits:
+      'Stärkt den unteren Rücken und die gesamte hintere Kette – eine der wichtigsten Übungen gegen Rückenschmerzen durch langes Sitzen.',
+    instructions: [
+      'Polster knapp unterhalb des Hüftknochens einstellen, Fersen fest unter die Rolle.',
+      'Arme vor der Brust kreuzen, Rücken gerade halten.',
+      'Oberkörper kontrolliert aus der Hüfte nach unten senken.',
+      'Langsam wieder aufrichten, bis Oberkörper und Beine eine Linie bilden – nicht ins Hohlkreuz überstrecken.',
+    ],
+    breathingTip: 'Beim Aufrichten ausatmen, beim Absenken einatmen.',
+    animationPose: 'back_extension',
+    progressionStepKg: 0,
+    progressionStepSeconds: 0,
+    progressionStepReps: 1,
+  },
+  {
+    id: 'eq-cable-crunch',
+    name: 'Bauchgerät oder Crunch am Kabel',
+    category: 'geraete',
+    equipment: 'Bauchmaschine oder Kabelzug mit Seil',
+    isTimed: false,
+    defaultWeightKg: 25,
+    defaultSets: 3,
+    defaultReps: 15,
+    defaultSeconds: 0,
+    restSeconds: 60,
+    goals: ['muskelaufbau', 'fit_im_alter', 'ausdauer'],
+    levels: ['anfaenger', 'fortgeschritten', 'profi'],
+    primaryMuscles: ['Bauch (Gerader Bauchmuskel)', 'Schräge Bauchmuskeln'],
+    healthBenefits:
+      'Trainiert die Bauchmuskulatur gezielt mit dosierbarem Widerstand – stabilisiert die Körpermitte und entlastet die Wirbelsäule.',
+    instructions: [
+      'Am Kabelzug knien (oder ins Bauchgerät setzen), Seilenden neben dem Kopf halten.',
+      'Hüfte bleibt ruhig – die Bewegung kommt nur aus dem Oberkörper.',
+      'Wirbelsäule einrollen und die Ellbogen Richtung Oberschenkel führen.',
+      'Kontrolliert wieder aufrichten, ohne die Spannung im Bauch zu verlieren.',
+    ],
+    breathingTip: 'Beim Einrollen kräftig ausatmen, beim Aufrichten einatmen.',
+    animationPose: 'cable_crunch',
+    progressionStepKg: 2.5,
+    progressionStepSeconds: 0,
+    progressionStepReps: 1,
   },
 
   // ============================================================================
@@ -1546,7 +1670,7 @@ export const EXERCISES: ExerciseDefinition[] = [
       'Den vorderen Ellbogen erst tief zum Innenknöchel führen und anschließend den Arm weit zur Decke aufdrehen.',
     ],
     breathingTip: 'Beim Aufdrehen zur Decke tief einatmen, beim Absenken ausatmen.',
-    animationPose: 'hip_flexor_stretch',
+    animationPose: 'worlds_greatest_stretch',
     progressionStepKg: 0,
     progressionStepSeconds: 10,
     progressionStepReps: 0,
@@ -1599,7 +1723,7 @@ export const EXERCISES: ExerciseDefinition[] = [
       'Nach 30 Sekunden das hintere Knie leicht beugen, um auch den tiefen Schollenmuskel zu erreichen.',
     ],
     breathingTip: 'Gleichmäßig weiteratmen.',
-    animationPose: 'hamstring_stretch',
+    animationPose: 'calf_wall_stretch',
     progressionStepKg: 0,
     progressionStepSeconds: 10,
     progressionStepReps: 0,
@@ -1625,7 +1749,7 @@ export const EXERCISES: ExerciseDefinition[] = [
       'Knie eng nebeneinander halten und das Becken leicht aufrichten.',
     ],
     breathingTip: 'Ruhig durchatmen.',
-    animationPose: 'calf_hold',
+    animationPose: 'quad_stretch',
     progressionStepKg: 0,
     progressionStepSeconds: 10,
     progressionStepReps: 0,
@@ -1652,7 +1776,35 @@ export const EXERCISES: ExerciseDefinition[] = [
       'Nach 30 Sekunden sanft die Seite wechseln.',
     ],
     breathingTip: 'Verlängertes Ausatmen (4 Sek. ein, 6 Sek. aus).',
-    animationPose: 'chest_opener',
+    animationPose: 'neck_stretch',
+    progressionStepKg: 0,
+    progressionStepSeconds: 10,
+    progressionStepReps: 0,
+  },
+  {
+    id: 'str-toe-touch',
+    name: 'Vorbeuge im Stand (Fingerspitzen zu den Fußspitzen)',
+    category: 'dehnung',
+    equipment: 'Ohne Geräte',
+    isTimed: true,
+    defaultWeightKg: 0,
+    defaultSets: 2,
+    defaultReps: 1,
+    defaultSeconds: 45,
+    restSeconds: 15,
+    goals: ['fit_im_alter', 'ausdauer', 'blutdruck', 'muskelaufbau'],
+    levels: ['anfaenger', 'fortgeschritten', 'profi'],
+    primaryMuscles: ['Beinrückseite (Hamstrings)', 'Waden', 'Unterer Rücken'],
+    healthBenefits:
+      'Dehnt die gesamte hintere Kette von den Waden bis zum unteren Rücken und verbessert die Beweglichkeit beim Bücken im Alltag.',
+    instructions: [
+      'Hüftbreit aufrecht stehen, Arme zuerst lang nach oben strecken.',
+      'Mit dem Ausatmen langsam aus der Hüfte nach vorn-unten beugen, Knie bleiben gestreckt (bei Bedarf minimal gebeugt).',
+      'Mit den Fingerspitzen Richtung Fußspitzen greifen und den Kopf locker hängen lassen.',
+      'Position halten, ohne zu wippen – zum Aufrichten Wirbel für Wirbel langsam hochrollen.',
+    ],
+    breathingTip: 'Ruhig weiteratmen und mit jedem Ausatmen ein kleines Stück tiefer sinken lassen.',
+    animationPose: 'toe_touch',
     progressionStepKg: 0,
     progressionStepSeconds: 10,
     progressionStepReps: 0,
@@ -1848,8 +2000,8 @@ export function generatePlanForGoalAndLevel(goal: TrainingGoal, level: FitnessLe
           items: buildPlanItems(
             [
               'eq-bench-press',
-              'eq-incline-db-press',
-              'eq-shoulder-press',
+              'eq-chest-press',
+              'eq-machine-shoulder-press',
               'eq-lateral-raise',
               'bw-dips',
               'iso-plank',
@@ -1870,7 +2022,7 @@ export function generatePlanForGoalAndLevel(goal: TrainingGoal, level: FitnessLe
               'eq-lat-pulldown',
               'eq-seated-cable-row',
               'eq-dumbbell-row',
-              'eq-face-pulls',
+              'eq-back-extension',
               'eq-bicep-curl',
               'iso-dead-hang',
               'str-childs-pose',
@@ -1912,7 +2064,7 @@ export function generatePlanForGoalAndLevel(goal: TrainingGoal, level: FitnessLe
               'iso-wall-sit',
               'iso-calf-hold',
               'str-quad-stand',
-              'str-hamstring',
+              'str-toe-touch',
             ],
             level
           ),
@@ -1929,7 +2081,7 @@ export function generatePlanForGoalAndLevel(goal: TrainingGoal, level: FitnessLe
               'bw-pullup',
               'bw-pushup',
               'eq-tricep-pushdown',
-              'eq-farmers-walk',
+              'eq-cable-crunch',
               'iso-hollow-hold',
               'iso-l-sit',
               'str-worlds-greatest',

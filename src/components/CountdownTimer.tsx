@@ -97,7 +97,7 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
               return effectiveRest;
             } else {
               setIsRunning(false);
-              if (onCompleteAllSets) onCompleteAllSets();
+              if (onCompleteAllSets) setTimeout(onCompleteAllSets, 0);
               return 0;
             }
           } else {
