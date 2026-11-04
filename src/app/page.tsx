@@ -48,7 +48,6 @@ import {
   CATEGORY_LABELS,
   DAY_TYPE_LABELS,
   generatePlanForGoalAndLevel,
-  getInitialSeedData,
   type ExerciseCategory,
   type TrainingGoal,
   type FitnessLevel,
@@ -98,6 +97,14 @@ const NAV_ITEMS: { id: MainTab; label: string; icon: LucideIcon }[] = [
 ];
 
 const BUILT_IN_EXERCISE_IDS = new Set(EXERCISES.map((e) => e.id));
+
+// Frühere Versionen haben Demo-Einträge mit kurzen IDs (z.B. "c-4") angelegt – echte Einträge
+// haben Zeitstempel-IDs ("c-1730...") oder Cloud-UUIDs. Demo-Einträge werden beim Laden entfernt.
+const DEMO_ENTRY_ID = /^[scw]-\d{1,2}$/;
+const withoutDemoEntries = <T extends { id: string }>(entries: T[]): T[] =>
+  Array.isArray(entries) ? entries.filter((e) => !DEMO_ENTRY_ID.test(e.id)) : [];
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const formatDateDE = (iso: string) => {
   const [y, m, d] = iso.split('-');
@@ -356,6 +363,7 @@ export default function FitPulseApp() {
   const [showDaySettingsModal, setShowDaySettingsModal] = useState(false);
   const [expandedPlanItemIdx, setExpandedPlanItemIdx] = useState<number | null>(null);
   const [showStatsFilterAccordion, setShowStatsFilterAccordion] = useState(false);
+  const [showStatsEntries, setShowStatsEntries] = useState(false);
   const [showLoginFeaturesAccordion, setShowLoginFeaturesAccordion] = useState(false);
 
   // Tracker: aufgeklappte Zeile (-1 = Ausdauer-Block), Zahnrad, angepasste Werte & Timer-Menü
@@ -420,7 +428,6 @@ export default function FitPulseApp() {
   // Load local data for a specific scope (guest or user.id)
   const loadLocalScopeData = useCallback((uid?: string | null) => {
     try {
-      const seed = getInitialSeedData();
       const scope = uid || 'guest';
       const savedPlan = localStorage.getItem(`${STORAGE_KEYS.plan}_${scope}`);
       const savedCustomEx = localStorage.getItem(`${STORAGE_KEYS.customExercises}_${scope}`);
@@ -444,15 +451,14 @@ export default function FitPulseApp() {
         setPlan(generatePlanForGoalAndLevel('blutdruck', 'fortgeschritten'));
       }
 
-      setStrengthLogs(savedStrength ? JSON.parse(savedStrength) : seed.strengthLogs);
-      setCardioLogs(savedCardio ? JSON.parse(savedCardio) : seed.cardioLogs);
-      setWeightLogs(savedWeight ? JSON.parse(savedWeight) : seed.weightLogs);
+      setStrengthLogs(savedStrength ? withoutDemoEntries(JSON.parse(savedStrength)) : []);
+      setCardioLogs(savedCardio ? withoutDemoEntries(JSON.parse(savedCardio)) : []);
+      setWeightLogs(savedWeight ? withoutDemoEntries(JSON.parse(savedWeight)) : []);
       if (savedReminder !== null) setSundayReminderEnabled(savedReminder === 'true');
     } catch {
-      const seed = getInitialSeedData();
-      setStrengthLogs(seed.strengthLogs);
-      setCardioLogs(seed.cardioLogs);
-      setWeightLogs(seed.weightLogs);
+      setStrengthLogs([]);
+      setCardioLogs([]);
+      setWeightLogs([]);
     } finally {
       setHydrated(true);
     }
@@ -1024,15 +1030,79 @@ export default function FitPulseApp() {
     return { nextLogs, nextChecked };
   };
 
+  // ---------------------------------------------------------------------------
+  // Einträge löschen (lokal + Supabase-Cloud)
+  // ---------------------------------------------------------------------------
+  const dayIso = (date: string) => new Date(date).toISOString();
+
+  const deleteStrengthLogsFromCloud = (logs: StrengthLogEntry[]) => {
+    const client = getSupabaseClient();
+    if (!client || !user) return;
+    logs.forEach((l) => {
+      const q = client.from('strength_logs').delete().eq('user_id', user.id);
+      (UUID_RE.test(l.id)
+        ? q.eq('id', l.id)
+        : q.eq('exercise_id', l.exerciseId).eq('performed_at', dayIso(l.performedAt))
+      ).then(() => undefined);
+    });
+  };
+
+  const deleteCardioLogsFromCloud = (logs: CardioLogEntry[]) => {
+    const client = getSupabaseClient();
+    if (!client || !user) return;
+    logs.forEach((c) => {
+      const q = client.from('cardio_logs').delete().eq('user_id', user.id);
+      (UUID_RE.test(c.id)
+        ? q.eq('id', c.id)
+        : q.eq('discipline', c.discipline).eq('performed_at', dayIso(c.performedAt))
+      ).then(() => undefined);
+    });
+  };
+
+  const deleteWeightLogsFromCloud = (logs: WeightLogEntry[]) => {
+    const client = getSupabaseClient();
+    if (!client || !user) return;
+    logs.forEach((w) => {
+      const q = client.from('weight_logs').delete().eq('user_id', user.id);
+      (UUID_RE.test(w.id) ? q.eq('id', w.id) : q.eq('measured_at', dayIso(w.measuredAt))).then(
+        () => undefined
+      );
+    });
+  };
+
+  const deleteStrengthLog = (log: StrengthLogEntry) => {
+    setStrengthLogs((prev) => prev.filter((l) => l.id !== log.id));
+    deleteStrengthLogsFromCloud([log]);
+    triggerToast(`Eintrag "${log.exerciseName}" (${formatDateDE(log.performedAt)}) gelöscht.`);
+  };
+
+  const deleteCardioLog = (log: CardioLogEntry) => {
+    setCardioLogs((prev) => prev.filter((c) => c.id !== log.id));
+    deleteCardioLogsFromCloud([log]);
+    triggerToast(
+      `${log.discipline === 'laufen' ? 'Laufeinheit' : 'Radeinheit'} vom ${formatDateDE(log.performedAt)} gelöscht.`
+    );
+  };
+
+  const deleteWeightLog = (log: WeightLogEntry) => {
+    setWeightLogs((prev) => prev.filter((w) => w.id !== log.id));
+    deleteWeightLogsFromCloud([log]);
+    triggerToast(`Messung vom ${formatDateDE(log.measuredAt)} gelöscht.`);
+  };
+
   // Checkbox in the tracker list: check off (with current values) or uncheck
   const toggleChecklistExercise = (exerciseId: string, itemIdx: number) => {
     const key = `${inputDate}:${selectedDayIndex}:${itemIdx}:${exerciseId}`;
 
     if (isDayExerciseCompleted(exerciseId, itemIdx)) {
       setManualCheckedMap((prev) => ({ ...prev, [key]: false }));
+      const removed = strengthLogs.filter(
+        (l) => l.exerciseId === exerciseId && l.performedAt === inputDate
+      );
       setStrengthLogs((prev) =>
         prev.filter((l) => !(l.exerciseId === exerciseId && l.performedAt === inputDate))
       );
+      deleteStrengthLogsFromCloud(removed);
       triggerToast('Häkchen entfernt.');
       return;
     }
@@ -1083,9 +1153,13 @@ export default function FitPulseApp() {
 
   const toggleCardioCheck = () => {
     if (isCardioDoneToday(cardioDiscipline)) {
+      const removed = cardioLogs.filter(
+        (c) => c.performedAt === inputDate && c.discipline === cardioDiscipline
+      );
       setCardioLogs((prev) =>
         prev.filter((c) => !(c.performedAt === inputDate && c.discipline === cardioDiscipline))
       );
+      deleteCardioLogsFromCloud(removed);
       triggerToast('Häkchen entfernt.');
       return;
     }
@@ -3364,6 +3438,102 @@ export default function FitPulseApp() {
               data={activeChartConfig.data}
               lowerIsBetter={activeChartConfig.lowerIsBetter}
             />
+
+            {/* Einträge verwalten: passend zur aktuellen Auswahl, mit Löschen */}
+            {(() => {
+              type Row = { id: string; date: string; title: string; detail: string; onDelete: () => void };
+              let rows: Row[] = [];
+              let heading = '';
+              if (dashboardDomain === 'kraft') {
+                const exDef = allExercises.find((e) => e.id === chartExerciseId);
+                heading = exDef ? exDef.name : 'Kraft-Einträge';
+                rows = strengthLogs
+                  .filter((l) => l.exerciseId === chartExerciseId)
+                  .map((l) => ({
+                    id: l.id,
+                    date: l.performedAt,
+                    title: l.exerciseName,
+                    detail: `${l.sets} × ${l.durationSeconds > 0 ? `${l.durationSeconds} Sek.` : `${l.reps} Wdh.`}${
+                      l.weightKg > 0 ? ` · ${l.weightKg} kg` : ''
+                    }`,
+                    onDelete: () => deleteStrengthLog(l),
+                  }));
+              } else if (dashboardDomain === 'ausdauer') {
+                heading = chartCardioDiscipline === 'laufen' ? 'Laufeinheiten' : 'Radeinheiten';
+                rows = cardioLogs
+                  .filter((c) => c.discipline === chartCardioDiscipline)
+                  .map((c) => ({
+                    id: c.id,
+                    date: c.performedAt,
+                    title: c.discipline === 'laufen' ? 'Laufen' : 'Radfahren',
+                    detail: `${c.distanceKm} km · ${c.durationMinutes} Min. · ${c.elevationMeters} hm`,
+                    onDelete: () => deleteCardioLog(c),
+                  }));
+              } else {
+                heading = 'Gewicht & Blutdruck';
+                rows = weightLogs.map((w) => ({
+                  id: w.id,
+                  date: w.measuredAt,
+                  title: `${w.weightKg} kg`,
+                  detail: w.systolicBp ? `RR ${w.systolicBp}/${w.diastolicBp} mmHg` : 'ohne Blutdruck',
+                  onDelete: () => deleteWeightLog(w),
+                }));
+              }
+              rows.sort((a, b) => b.date.localeCompare(a.date));
+
+              return (
+                <div className="rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowStatsEntries((v) => !v)}
+                    className="w-full px-4 py-3 flex items-center justify-between gap-2 text-left"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-extrabold text-white">Einträge verwalten</span>
+                      <span className="block text-[11px] text-slate-400 truncate">
+                        {heading} · {rows.length} {rows.length === 1 ? 'Eintrag' : 'Einträge'}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 shrink-0 transition ${
+                        showStatsEntries ? 'rotate-180 text-emerald-400' : 'text-slate-500'
+                      }`}
+                    />
+                  </button>
+                  {showStatsEntries && (
+                    <ul className="border-t border-slate-800 divide-y divide-slate-800/80 max-h-96 overflow-y-auto">
+                      {rows.length === 0 && (
+                        <li className="px-4 py-4 text-xs text-slate-400 text-center">
+                          Noch keine Einträge vorhanden.
+                        </li>
+                      )}
+                      {rows.map((r) => (
+                        <li key={r.id} className="px-4 py-2.5 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-white truncate">
+                              {formatDateDE(r.date)} · {r.title}
+                            </div>
+                            <div className="text-[11px] text-slate-400">{r.detail}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Eintrag vom ${formatDateDE(r.date)} wirklich löschen?`)) {
+                                r.onDelete();
+                              }
+                            }}
+                            className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 hover:text-rose-400 shrink-0"
+                            aria-label="Eintrag löschen"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
       </main>
