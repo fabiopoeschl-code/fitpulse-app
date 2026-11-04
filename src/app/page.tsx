@@ -540,6 +540,45 @@ export default function FitPulseApp() {
     localStorage.setItem(getScopedKey(STORAGE_KEYS.weightLogs), JSON.stringify(weightLogs));
   }, [weightLogs, hydrated, getScopedKey]);
 
+  // Automatically schedule weekly Sunday 09:30 AM push reminder on native Android & check Sunday due state
+  useEffect(() => {
+    if (!hydrated || !sundayReminderEnabled) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform() && !cancelled) {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          const perm = await LocalNotifications.requestPermissions();
+          if (perm.display === 'granted') {
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  id: 7001,
+                  title: 'FitPulse Sonntags-Check-in ⚖️',
+                  body: 'Zeit für deinen wöchentlichen Gewichts- & Blutdruck-Eintrag!',
+                  schedule: {
+                    on: {
+                      weekday: 1, // 1 = Sonntag
+                      hour: 9,
+                      minute: 30,
+                    },
+                    repeats: true,
+                  },
+                },
+              ],
+            });
+          }
+        }
+      } catch {
+        // Ignore on pure web browser
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, sundayReminderEnabled]);
+
   // Automatically sync 7-day plan, custom exercises, and daily check-offs to Supabase for the logged-in user
   useEffect(() => {
     if (!hydrated || !user || cloudDataLoadedForUser !== user.id) return;
@@ -4063,6 +4102,25 @@ export default function FitPulseApp() {
             <p className="text-xs sm:text-sm text-slate-300">
               Trage dein aktuelles Sonntags-Gewicht (und optional deinen Ruhe-Blutdruck) ein. Die Werte erscheinen sofort in deinem interaktiven Line-Chart.
             </p>
+
+            <div className="p-3 rounded-xl bg-slate-950 border border-amber-500/30 flex items-center justify-between gap-2">
+              <div className="text-xs">
+                <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                  <Bell className="w-3.5 h-3.5" />
+                  Sonntags-Push (So, 09:30 Uhr)
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  {sundayReminderEnabled ? 'Aktiviert ✓' : 'Ausgeschaltet'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={enableBrowserSundayNotification}
+                className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold transition"
+              >
+                Push testen / erlauben
+              </button>
+            </div>
 
             <form onSubmit={handleSaveWeightLog} className="space-y-3">
               <div>
