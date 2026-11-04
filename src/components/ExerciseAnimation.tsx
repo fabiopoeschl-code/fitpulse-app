@@ -31,7 +31,7 @@ interface SkeletonPose {
   kneeBack?: Joint2D;
   ankleBack?: Joint2D;
   toeBack?: Joint2D;
-  // Active muscle highlight zones: 'quads' | 'glutes' | 'core' | 'chest' | 'back' | 'shoulders' | 'arms' | 'calves' | 'hamstrings' | 'hip_flexor'
+  // Active muscle highlight zones: 'quads' | 'glutes' | 'core' | 'chest' | 'back' | 'shoulders' | 'arms' | 'calves' | 'hamstrings' | 'hip_flexor' | 'neck'
   activeZones: string[];
   phaseLabel: string;
   breathLabel: string;
@@ -42,6 +42,12 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const lerpJoint = (j1: Joint2D, j2: Joint2D, t: number): Joint2D => ({
   x: lerp(j1.x, j2.x, t),
   y: lerp(j1.y, j2.y, t),
+});
+
+// Point at distance `len` from origin `o` in direction `deg` (0° = right, 90° = down)
+const along = (o: Joint2D, deg: number, len: number): Joint2D => ({
+  x: o.x + Math.cos((deg * Math.PI) / 180) * len,
+  y: o.y + Math.sin((deg * Math.PI) / 180) * len,
 });
 
 // Anatomical tapered limb drawer with 3D studio lighting & optional muscle activation glow
@@ -969,6 +975,284 @@ function computeBiomechanicalPose(pose: AnimationPose, t: number): SkeletonPose 
       };
     }
 
+    case 'chest_press': {
+      const push = phase;
+      return {
+        head: { x: 134, y: 70 },
+        neck: { x: 132, y: 84 },
+        shoulder: { x: 130, y: 96 },
+        elbow: { x: lerp(108, 160, push), y: lerp(116, 100, push) },
+        wrist: { x: lerp(140, 192, push), y: lerp(104, 98, push) },
+        elbowBack: { x: lerp(104, 156, push), y: lerp(113, 97, push) },
+        wristBack: { x: lerp(136, 188, push), y: lerp(101, 95, push) },
+        hip: { x: 128, y: 148 },
+        knee: { x: 176, y: 148 },
+        ankle: { x: 180, y: 188 },
+        toe: { x: 200, y: 188 },
+        kneeBack: { x: 172, y: 146 },
+        ankleBack: { x: 174, y: 186 },
+        toeBack: { x: 194, y: 186 },
+        activeZones: ['chest', 'shoulders', 'arms'],
+        phaseLabel:
+          push > 0.5
+            ? 'Griffe kraftvoll nach vorn drücken (Ellbogen nicht durchstrecken)'
+            : 'Kontrolliert zurückführen · Brust öffnen',
+        breathLabel: breathText,
+      };
+    }
+
+    case 'machine_shoulder_press': {
+      const press = phase;
+      return {
+        head: { x: 134, y: 70 },
+        neck: { x: 132, y: 84 },
+        shoulder: { x: 130, y: 96 },
+        elbow: { x: lerp(140, 138, press), y: lerp(122, 68, press) },
+        wrist: { x: lerp(142, 142, press), y: lerp(90, 38, press) },
+        elbowBack: { x: lerp(136, 134, press), y: lerp(120, 66, press) },
+        wristBack: { x: lerp(138, 138, press), y: lerp(88, 36, press) },
+        hip: { x: 128, y: 148 },
+        knee: { x: 176, y: 148 },
+        ankle: { x: 180, y: 188 },
+        toe: { x: 200, y: 188 },
+        kneeBack: { x: 172, y: 146 },
+        ankleBack: { x: 174, y: 186 },
+        toeBack: { x: 194, y: 186 },
+        activeZones: ['shoulders', 'arms'],
+        phaseLabel:
+          press > 0.5
+            ? 'Griffe nach oben drücken · Rücken bleibt am Polster'
+            : 'Langsam bis auf Schulterhöhe absenken',
+        breathLabel: breathText,
+      };
+    }
+
+    case 'leg_curl':
+    case 'leg_extension': {
+      const isCurl = pose === 'leg_curl';
+      // Shin angle: curl = from extended (forward) to bent under the seat; extension = reverse
+      const shinDeg = isCurl ? lerp(-8, 100, phase) : lerp(96, -6, phase);
+      const knee = { x: 178, y: 140 };
+      const kneeBack = { x: 174, y: 138 };
+      const ankle = along(knee, shinDeg, 44);
+      const ankleBack = along(kneeBack, shinDeg, 44);
+      return {
+        head: { x: 130, y: 62 },
+        neck: { x: 128, y: 76 },
+        shoulder: { x: 126, y: 88 },
+        elbow: { x: 140, y: 112 },
+        wrist: { x: 154, y: 134 },
+        hip: { x: 128, y: 140 },
+        knee,
+        ankle,
+        toe: along(ankle, shinDeg - 90, 16),
+        kneeBack,
+        ankleBack,
+        toeBack: along(ankleBack, shinDeg - 90, 16),
+        activeZones: isCurl ? ['hamstrings'] : ['quads'],
+        phaseLabel: isCurl
+          ? phase > 0.5
+            ? 'Unterschenkel kraftvoll unter den Sitz beugen'
+            : 'Ohne Schwung langsam wieder strecken'
+          : phase > 0.5
+          ? 'Beine bis zur vollen Streckung anheben · kurz halten'
+          : 'Langsam über 3 Sek. absenken',
+        breathLabel: breathText,
+      };
+    }
+
+    case 'back_extension': {
+      // 0 = Oberkörper in Linie mit den Beinen, 1 = tief nach unten gebeugt
+      const torsoDeg = lerp(-40, 92, phase);
+      const hip = { x: 156, y: 124 };
+      const chestSide = torsoDeg + 90;
+      return {
+        head: along(hip, torsoDeg, 72),
+        neck: along(hip, torsoDeg, 58),
+        shoulder: along(hip, torsoDeg, 48),
+        elbow: along(along(hip, torsoDeg, 34), chestSide, 13),
+        wrist: along(along(hip, torsoDeg, 46), chestSide, 7),
+        hip,
+        knee: { x: 128, y: 150 },
+        ankle: { x: 100, y: 176 },
+        toe: { x: 114, y: 186 },
+        kneeBack: { x: 124, y: 152 },
+        ankleBack: { x: 96, y: 178 },
+        toeBack: { x: 110, y: 188 },
+        activeZones: ['back', 'glutes', 'hamstrings'],
+        phaseLabel:
+          phase > 0.5
+            ? 'Unten: Rücken lang lassen, Dehnung spüren'
+            : 'Kontrolliert aufrichten bis zur geraden Linie (kein Hohlkreuz)',
+        breathLabel: isConcentric ? 'Beim Absenken einatmen' : 'Beim Aufrichten ausatmen',
+      };
+    }
+
+    case 'cable_crunch': {
+      const torsoDeg = lerp(-80, 28, phase);
+      const hip = { x: 146, y: 138 };
+      const front = torsoDeg + 90;
+      const headBase = along(hip, torsoDeg, 60);
+      return {
+        head: along(headBase, torsoDeg + 60, 9),
+        neck: along(hip, torsoDeg, 56),
+        shoulder: along(hip, torsoDeg, 48),
+        elbow: along(along(hip, torsoDeg, 40), front, 20),
+        wrist: along(along(hip, torsoDeg, 60), front, 8),
+        hip,
+        knee: { x: 150, y: 184 },
+        ankle: { x: 106, y: 186 },
+        toe: { x: 94, y: 190 },
+        kneeBack: { x: 146, y: 184 },
+        ankleBack: { x: 102, y: 186 },
+        toeBack: { x: 90, y: 190 },
+        activeZones: ['core'],
+        phaseLabel:
+          phase > 0.5
+            ? 'Wirbelsäule einrollen · Ellbogen Richtung Oberschenkel'
+            : 'Kontrolliert aufrichten, Hüfte bleibt ruhig',
+        breathLabel: isConcentric ? 'Beim Einrollen kräftig ausatmen' : 'Beim Aufrichten einatmen',
+      };
+    }
+
+    case 'worlds_greatest_stretch': {
+      const open = phase;
+      const shoulder = { x: lerp(190, 184, open), y: lerp(118, 104, open) };
+      // Vorderer Arm: vom Innenknöchel (unten) bis zur Decke (oben) aufdrehen
+      const armDeg = lerp(95, -88, open);
+      return {
+        head: { x: lerp(212, 202, open), y: lerp(112, 86, open) },
+        neck: { x: lerp(202, 194, open), y: lerp(114, 96, open) },
+        shoulder,
+        elbow: along(shoulder, armDeg, 28),
+        wrist: along(shoulder, armDeg, 56),
+        elbowBack: { x: lerp(190, 186, open), y: lerp(150, 144, open) },
+        wristBack: { x: 186, y: 186 },
+        hip: { x: 148, y: 142 },
+        knee: { x: 194, y: 136 },
+        ankle: { x: 198, y: 188 },
+        toe: { x: 220, y: 188 },
+        kneeBack: { x: 106, y: 162 },
+        ankleBack: { x: 64, y: 180 },
+        toeBack: { x: 80, y: 190 },
+        activeZones: ['hip_flexor', 'hamstrings', 'back', 'shoulders'],
+        phaseLabel:
+          open > 0.5
+            ? 'Arm weit zur Decke aufdrehen · Blick folgt der Hand'
+            : 'Ellbogen tief Richtung vorderen Fuß führen',
+        breathLabel: isConcentric ? 'Beim Aufdrehen tief einatmen' : 'Beim Absenken ausatmen',
+      };
+    }
+
+    case 'calf_wall_stretch': {
+      const lean = phase;
+      const hip = { x: lerp(168, 178, lean), y: lerp(124, 128, lean) };
+      const ankleBack = { x: 96, y: 186 };
+      return {
+        head: { x: lerp(228, 237, lean), y: lerp(62, 68, lean) },
+        neck: { x: lerp(222, 230, lean), y: lerp(76, 81, lean) },
+        shoulder: { x: lerp(214, 223, lean), y: lerp(86, 91, lean) },
+        elbow: { x: lerp(236, 241, lean), y: lerp(98, 101, lean) },
+        wrist: { x: 258, y: 86 },
+        elbowBack: { x: lerp(233, 238, lean), y: lerp(95, 98, lean) },
+        wristBack: { x: 256, y: 80 },
+        hip,
+        knee: { x: lerp(212, 220, lean), y: lerp(150, 152, lean) },
+        ankle: { x: 214, y: 188 },
+        toe: { x: 236, y: 188 },
+        kneeBack: lerpJoint(hip, ankleBack, 0.5),
+        ankleBack,
+        toeBack: { x: 118, y: 188 },
+        activeZones: ['calves'],
+        phaseLabel: 'Hintere Ferse bleibt am Boden · Hüfte Richtung Wand schieben',
+        breathLabel: 'Gleichmäßig weiteratmen',
+      };
+    }
+
+    case 'quad_stretch': {
+      const hip = { x: 164, y: 122 };
+      const knee = along(hip, lerp(100, 104, phase), 46);
+      const shinDeg = lerp(-122, -102, phase);
+      const ankle = along(knee, shinDeg, 44);
+      return {
+        head: { x: 166, y: 44 + microBreath * 0.4 },
+        neck: { x: 166, y: 58 },
+        shoulder: { x: 166, y: 70 },
+        elbow: { x: 148, y: 98 },
+        wrist: { x: ankle.x + 2, y: ankle.y + 2 },
+        elbowBack: { x: 190, y: 86 },
+        wristBack: { x: 214, y: 88 },
+        hip,
+        knee,
+        ankle,
+        toe: along(ankle, shinDeg - 75, 16),
+        kneeBack: { x: 166, y: 156 },
+        ankleBack: { x: 164, y: 188 },
+        toeBack: { x: 186, y: 188 },
+        activeZones: ['quads', 'hip_flexor'],
+        phaseLabel: 'Ferse sanft zum Gesäß ziehen · Knie zeigen nach unten',
+        breathLabel: 'Ruhig durchatmen',
+      };
+    }
+
+    case 'neck_stretch': {
+      const tilt = phase;
+      const neck = { x: 151, y: 78 };
+      const head = along(neck, lerp(-90, -52, tilt), 15);
+      return {
+        head,
+        neck,
+        shoulder: { x: 150, y: lerp(90, 94, tilt) },
+        // Vorderer Arm hält die Sitzkante (Schulter sinkt), hinterer Arm liegt auf dem Kopf
+        elbow: { x: 152, y: 118 },
+        wrist: { x: 156, y: 146 },
+        elbowBack: { x: 132, y: lerp(58, 60, tilt) },
+        wristBack: { x: head.x - 4, y: head.y - 9 },
+        hip: { x: 150, y: 140 },
+        knee: { x: 196, y: 140 },
+        ankle: { x: 198, y: 188 },
+        toe: { x: 218, y: 188 },
+        kneeBack: { x: 192, y: 138 },
+        ankleBack: { x: 194, y: 186 },
+        toeBack: { x: 214, y: 186 },
+        activeZones: ['neck', 'shoulders'],
+        phaseLabel:
+          tilt > 0.5
+            ? 'Kopf sanft neigen · gegenüberliegende Schulter sinken lassen'
+            : 'Langsam zur Mitte zurück · Nacken lang machen',
+        breathLabel: '4 Sek. Ein · 6 Sek. Aus',
+      };
+    }
+
+    case 'toe_touch': {
+      const fold = phase;
+      const hip = { x: 156, y: 120 };
+      const torsoDeg = lerp(-92, 48, fold);
+      const shoulder = along(hip, torsoDeg, 48);
+      const armDeg = lerp(-92, 88, fold);
+      const armLen = lerp(52, 28, fold);
+      return {
+        head: along(hip, torsoDeg, 72),
+        neck: along(hip, torsoDeg, 58),
+        shoulder,
+        elbow: along(shoulder, armDeg, armLen / 2),
+        wrist: along(shoulder, armDeg, armLen),
+        hip,
+        knee: { x: 160, y: 154 },
+        ankle: { x: 162, y: 188 },
+        toe: { x: 184, y: 188 },
+        kneeBack: { x: 156, y: 153 },
+        ankleBack: { x: 156, y: 187 },
+        toeBack: { x: 178, y: 187 },
+        activeZones: ['hamstrings', 'calves', 'back'],
+        phaseLabel:
+          fold > 0.5
+            ? 'Fingerspitzen zu den Fußspitzen · Knie bleiben gestreckt'
+            : 'Arme lang nach oben · langsam aufrollen',
+        breathLabel: isConcentric ? 'Beim Vorbeugen ausatmen' : 'Beim Aufrollen einatmen',
+      };
+    }
+
     case 'chest_opener':
     default: {
       return {
@@ -1134,6 +1418,134 @@ function drawStudioEquipment(
     ctx.stroke();
   }
 
+  if (
+    pose === 'chest_press' ||
+    pose === 'machine_shoulder_press' ||
+    pose === 'leg_curl' ||
+    pose === 'leg_extension'
+  ) {
+    // Weight stack tower
+    ctx.fillStyle = '#111827';
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(34, 36, 32, 154, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#334155';
+    for (let i = 0; i < 6; i++) {
+      ctx.fillRect(39, 128 + i * 10, 22, 7);
+    }
+    // Seat, seat post & backrest
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.roundRect(skel.hip.x - 24, skel.hip.y + 9, 66, 10, 4);
+    ctx.fill();
+    ctx.fillRect(skel.hip.x + 2, skel.hip.y + 19, 8, Math.max(0, 190 - (skel.hip.y + 19)));
+    ctx.beginPath();
+    ctx.roundRect(skel.hip.x - 30, skel.hip.y - 72, 12, 80, 5);
+    ctx.fill();
+
+    if (pose === 'chest_press' || pose === 'machine_shoulder_press') {
+      // Lever arm from pivot to handles
+      const pivot = pose === 'chest_press' ? { x: 150, y: 28 } : { x: 92, y: 30 };
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pivot.x, pivot.y);
+      ctx.lineTo(skel.wrist.x, skel.wrist.y);
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(pivot.x, pivot.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (pose === 'back_extension') {
+    // 45° Hyperextension-Bank: Hüftpolster + Fußplatte + Rahmen
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(150, 150);
+    ctx.lineTo(116, 190);
+    ctx.moveTo(150, 150);
+    ctx.lineTo(196, 190);
+    ctx.moveTo(116, 190);
+    ctx.lineTo(196, 190);
+    ctx.stroke();
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.moveTo(skel.hip.x + 4, skel.hip.y + 14);
+    ctx.lineTo(skel.hip.x - 20, skel.hip.y + 36);
+    ctx.stroke();
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(84, 176);
+    ctx.lineTo(112, 194);
+    ctx.stroke();
+  }
+
+  if (pose === 'cable_crunch') {
+    // Kabelturm mit oberer Rolle
+    ctx.fillStyle = '#111827';
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(250, 18, 16, 172, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath();
+    ctx.arc(250, 26, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(250, 26);
+    ctx.lineTo(skel.wrist.x, skel.wrist.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Matte
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(80, 187, 90, 4);
+  }
+
+  if (pose === 'calf_wall_stretch') {
+    const wallGrad = ctx.createLinearGradient(262, 20, 284, 20);
+    wallGrad.addColorStop(0, '#334155');
+    wallGrad.addColorStop(1, '#0f172a');
+    ctx.fillStyle = wallGrad;
+    ctx.fillRect(262, 22, 20, 168);
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(262, 22);
+    ctx.lineTo(262, 190);
+    ctx.stroke();
+  }
+
+  if (pose === 'neck_stretch') {
+    // Hocker
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.roundRect(skel.hip.x - 26, skel.hip.y + 11, 56, 9, 4);
+    ctx.fill();
+    ctx.fillRect(skel.hip.x - 20, skel.hip.y + 20, 6, 30);
+    ctx.fillRect(skel.hip.x + 18, skel.hip.y + 20, 6, 30);
+  }
+
+  if (pose === 'worlds_greatest_stretch' || pose === 'toe_touch' || pose === 'quad_stretch') {
+    // Trainingsmatte
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(48, 187, 200, 4);
+  }
+
   ctx.restore();
 }
 
@@ -1168,6 +1580,41 @@ function drawForegroundWeights(
     ctx.arc(w.x, w.y, radius * 0.35, 0, Math.PI * 2);
     ctx.fillStyle = '#cbd5e1';
     ctx.fill();
+  }
+
+  if (pose === 'leg_curl' || pose === 'leg_extension') {
+    const shinDeg = (Math.atan2(skel.ankle.y - skel.knee.y, skel.ankle.x - skel.knee.x) * 180) / Math.PI;
+    // Curl: Rolle hinter der Ferse · Extension: Rolle vor dem Sprunggelenk
+    const side = pose === 'leg_curl' ? shinDeg + 90 : shinDeg - 90;
+    const pad = along(along(skel.knee, shinDeg, 36), side, 10);
+    ctx.fillStyle = '#475569';
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(pad.x, pad.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Oberschenkel-Fixierpolster
+    ctx.fillStyle = '#475569';
+    ctx.beginPath();
+    ctx.roundRect(skel.knee.x - 22, skel.knee.y - 22, 26, 9, 4);
+    ctx.fill();
+  }
+
+  if (pose === 'chest_press' || pose === 'machine_shoulder_press') {
+    // Griffe
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    if (pose === 'chest_press') {
+      ctx.moveTo(skel.wrist.x + 3, skel.wrist.y - 11);
+      ctx.lineTo(skel.wrist.x + 3, skel.wrist.y + 11);
+    } else {
+      ctx.moveTo(skel.wrist.x - 12, skel.wrist.y - 2);
+      ctx.lineTo(skel.wrist.x + 12, skel.wrist.y - 2);
+    }
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -1377,6 +1824,24 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
         skel.ankleBack,
         skel.toeBack
       );
+
+      // Nacken- & Trapez-Highlight
+      if (showMuscleXray && skel.activeZones.includes('neck')) {
+        ctx.save();
+        ctx.globalAlpha = 0.6 * (0.7 + 0.3 * pulse);
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 9;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(skel.shoulder.x, skel.shoulder.y);
+        ctx.lineTo(skel.neck.x, skel.neck.y);
+        ctx.lineTo(
+          (skel.neck.x + skel.head.x) / 2,
+          (skel.neck.y + skel.head.y) / 2
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
 
       // 7. Front Arm (Deltoid + Upper Arm + Forearm)
       drawAnatomicalLimb(
